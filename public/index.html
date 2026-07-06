@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Chief Estimator Dashboard</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+</head>
+
+<body>
+
+    <!-- ================= MENU ================= -->
+
+    <div class="menubar">
+
+        <div>File</div>
+        <div>Edit</div>
+        <div>Utilities</div>
+        <div>Libraries</div>
+        <div>Project</div>
+        <div>Estimate</div>
+        <div>Resources</div>
+        <div>Reports</div>
+        <div>Preferences</div>
+        <div>Help</div>
+
+    </div>
+
+    <!-- ================= TOOLBAR ================= -->
+
+    <div class="toolbar">
+
+        <button title="New">
+            <i class="fa-regular fa-file"></i>
+        </button>
+
+        <button title="Open">
+            <i class="fa-solid fa-folder-open"></i>
+        </button>
+
+        <button title="Save">
+            <i class="fa-solid fa-floppy-disk"></i>
+        </button>
+
+        <button title="Print">
+            <i class="fa-solid fa-print"></i>
+        </button>
+
+        <div class="separator"></div>
+
+        <button id="expandAll" title="Expand All">
+            <i class="fa-solid fa-square-plus"></i>
+        </button>
+
+        <button id="collapseAll" title="Collapse All">
+            <i class="fa-solid fa-square-minus"></i>
+        </button>
+
+        <div class="separator"></div>
+
+        <input
+            id="searchTree"
+            type="text"
+            placeholder="Search Cost Breakdown..."
+        >
+
+        <div class="spacer"></div>
+
+        <label class="upload">
+
+            <i class="fa-solid fa-upload"></i>
+
+            Upload Estimate
+
+            <input
+                type="file"
+                id="estimateFile"
+                hidden>
+
+        </label>
+
+    </div>
+
+    <!-- ================= MAIN ================= -->
+
+    <div class="workspace">
+
+        <!-- LEFT PANEL -->
+
+        <aside class="sidebar">
+
+            <div class="panel">
+
+                <div class="panel-header">
+
+                    <span id="costBreakdownTitle">
+
+                        Cost Breakdown
+
+                    </span>
+
+                </div>
+
+                <div id="tree" class="tree"></div>
+
+            </div>
+
+        </aside>
+
+        <!-- RIGHT PANEL -->
+
+        <main class="content">
+
+            <!-- Tabs -->
+
+            <div class="tabs">
+
+                <button
+                    id="detailTab"
+                    class="tab active">
+
+                    Detail
+
+                </button>
+
+                <button
+                    id="listTab"
+                    class="tab">
+
+                    List
+
+                </button>
+
+            </div>
+
+            <!-- Detail View -->
+
+            <div id="detailView">
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        Cost Detail Information
+
+                    </div>
+
+                    <div class="detail-grid">
+
+                        <label>Line No</label>
+                        <input id="lineNo" readonly>
+
+                        <label>Description</label>
+                        <input id="description" readonly>
+
+                        <label>Alternate Description</label>
+                        <input id="altDescription" readonly>
+
+                        <label>Quantity</label>
+                        <input id="quantity" readonly>
+
+                        <label>Unit</label>
+                        <input id="unit" readonly>
+
+                        <label>Status</label>
+                        <input id="status" value="Bid" readonly>
+
+                        <label>Unit Cost</label>
+                        <input id="unitCost" readonly>
+
+                        <label>Total Cost</label>
+                        <input id="totalCost" readonly>
+
+                        <label>Work Group</label>
+                        <input id="workGroup" readonly>
+
+                        <label>Location</label>
+                        <input id="location" readonly>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- List View -->
+
+            <!-- <div id="listView" style="display:none;">
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        Section List
+
+                    </div>
+
+                    <table id="listTable"></table>
+
+                </div>
+
+            </div> -->
+            <div id="listView" style="display:none">
+
+    <div class="panel">
+
+        <div class="panel-header">
+
+            Bid Listing
+
+        </div>
+
+        <table id="listTable"></table>
+
+    </div>
+
+</div>
+
+            <!-- Resource Panel -->
+
+            
+
+        </main>
+
+    </div>
+
+    <!-- ================= STATUS BAR ================= -->
+
+    <div class="statusbar">
+
+        <div>
+
+            Labor
+
+            <br>
+
+            <span id="laborTotal">$0.00</span>
+
+        </div>
+
+        <div>
+
+            Equipment
+
+            <br>
+
+            <span id="equipmentTotal">$0.00</span>
+
+        </div>
+
+        <div>
+
+            Material
+
+            <br>
+
+            <span id="materialTotal">$0.00</span>
+
+        </div>
+
+        <div>
+
+            Subcontract
+
+            <br>
+
+            <span id="subcontractTotal">$0.00</span>
+
+        </div>
+
+        <div>
+
+            Total Cost
+
+            <br>
+
+            <span id="grandTotal">$0.00</span>
+
+        </div>
+
+    </div>
+
+    <script src="js/app.js"></script>
+
+</body>
+
+</html>
