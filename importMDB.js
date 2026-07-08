@@ -1,21 +1,21 @@
 
+// // ID === oeld id
 // const fs = require("fs");
 // const path = require("path");
 // const mysql = require("mysql2/promise");
+
 // const MDBReader = require("mdb-reader").default;
 
 // const dbPath = path.join(
 //     __dirname,
-//     // "HCI-460-Water Control & Hydro Structures (english)-$US-sample.mdb" 
-//     "HCI-940-Regional Highway & Bridge Project Indirect Assemblies (metric)-$cdn-sample.mdb"
-//     // "HCI-910-Contractor Master Indirect Assemblies (english)-$US.mdb"
-//     // "HCI-530-Roadway Configurations (english)-$US.mdb"
-   
-
+//          // "HCI-460-Water Control & Hydro Structures (english)-$US-sample.mdb" 
+//    // "HCI-940-Regional Highway & Bridge Project Indirect Assemblies (metric)-$cdn-sample.mdb"
+//     //  "HCI-910-Contractor Master Indirect Assemblies (english)-$US.mdb"
+//      "HCI-530-Roadway Configurations (english)-$US.mdb"
 // );
 
 // async function importDatabase() {
-
+//     // const { default: MDBReader } = await import("mdb-reader");
 //     const connection = await mysql.createConnection({
 //         host: "localhost",
 //         user: "root",
@@ -42,7 +42,6 @@
 //             const table = reader.getTable(tableName);
 //             const columns = table.getColumns();
 
-//             // Check if table exists
 //             const [exists] = await connection.query(
 //                 `SHOW TABLES LIKE ?`,
 //                 [tableName]
@@ -50,51 +49,56 @@
 
 //             if (exists.length === 0) {
 
-//                 let createSQL = `CREATE TABLE \`${tableName}\` (`;
+//                 let createSQL = `CREATE TABLE \`${tableName}\` (
+//                     id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+//                 `;
 
 //                 columns.forEach(col => {
-//                     createSQL += `\`${col.name}\` LONGTEXT NULL,`;
+
+//                     // ❗ rename MDB ID to avoid conflict
+//                     let colName = col.name;
+//                     if (colName.toLowerCase() === "id") {
+//                         colName = "old_id";
+//                     }
+
+//                     createSQL += `\`${colName}\` LONGTEXT NULL,`;
 //                 });
 
-//                 createSQL += "`source_file` LONGTEXT NULL";
-
-//                 createSQL += ")";
+//                 createSQL += `source_file LONGTEXT NULL
+//                 )`;
 
 //                 await connection.query(createSQL);
 
 //                 console.log(`Created table ${tableName}`);
+//             }
 
-//             } else {
-
-//                 // Check if source_file column exists
+//             else {
 
 //                 const [cols] = await connection.query(
 //                     `SHOW COLUMNS FROM \`${tableName}\` LIKE 'source_file'`
 //                 );
 
 //                 if (cols.length === 0) {
-
 //                     await connection.query(
-//                         `ALTER TABLE \`${tableName}\`
-//                          ADD COLUMN source_file LONGTEXT NULL`
+//                         `ALTER TABLE \`${tableName}\` ADD COLUMN source_file LONGTEXT NULL`
 //                     );
-
-//                     console.log("Added source_file column");
 //                 }
-
 //             }
 
 //             const rows = table.getData();
 
 //             if (rows.length > 0) {
 
-//                 const columnNames = columns.map(c => c.name);
+//                 const columnNames = columns.map(c => {
+//                     if (c.name.toLowerCase() === "id") {
+//                         return "old_id";
+//                     }
+//                     return c.name;
+//                 });
 
 //                 const insertColumns = [...columnNames, "source_file"];
 
-//                 const placeholders = insertColumns
-//                     .map(() => "?")
-//                     .join(",");
+//                 const placeholders = insertColumns.map(() => "?").join(",");
 
 //                 const insertSQL = `
 //                     INSERT INTO \`${tableName}\`
@@ -104,67 +108,67 @@
 
 //                 for (const row of rows) {
 
-//                     const values = columnNames.map(c => row[c] ?? null);
+//                     const values = columnNames.map(c => {
+//                         if (c === "old_id") return row["ID"] ?? row["id"] ?? null;
+//                         return row[c] ?? null;
+//                     });
 
 //                     values.push(sourceFile);
 
 //                     await connection.execute(insertSQL, values);
-
 //                 }
 
 //                 console.log(`${rows.length} rows inserted`);
+//             }
 
-//             } else {
-
+//             else {
 //                 console.log("No records");
-
 //             }
 
 //             console.log("--------------------------------");
 
 //         } catch (err) {
-
 //             console.error(`Error importing ${tableName}:`, err.message);
-
 //         }
-
 //     }
 
 //     await connection.end();
-
 //     console.log("Import Completed Successfully.");
-
 // }
 
 // importDatabase();
 
 
 
+//100,000 rows = 100 MySQL requests
 
-
-// ID === oeld id
 const fs = require("fs");
 const path = require("path");
 const mysql = require("mysql2/promise");
+
 const MDBReader = require("mdb-reader").default;
 
-const dbPath = path.join(
-    __dirname,
-         // "HCI-460-Water Control & Hydro Structures (english)-$US-sample.mdb" 
-   // "HCI-940-Regional Highway & Bridge Project Indirect Assemblies (metric)-$cdn-sample.mdb"
-    //  "HCI-910-Contractor Master Indirect Assemblies (english)-$US.mdb"
-     "HCI-530-Roadway Configurations (english)-$US.mdb"
-);
+// const dbPath = path.join(
+//     __dirname,
+//     "HCI-530-Roadway Configurations (english)-$US.mdb"
+// );
 
-async function importDatabase() {
+// async function importDatabase() {
+async function importDatabase(dbPath) {
 
     const connection = await mysql.createConnection({
         host: "localhost",
         user: "root",
         password: "",
         database: "hci",
-        multipleStatements: true
+        multipleStatements: true,
+        maxPreparedStatements: 100
     });
+
+    // Speed up MySQL import
+    await connection.query("SET FOREIGN_KEY_CHECKS=0");
+    await connection.query("SET UNIQUE_CHECKS=0");
+    await connection.query("SET AUTOCOMMIT=0");
 
     const sourceFile = path.basename(dbPath);
 
@@ -184,98 +188,171 @@ async function importDatabase() {
             const table = reader.getTable(tableName);
             const columns = table.getColumns();
 
-            const [exists] = await connection.query(
+            let [exists] = await connection.query(
                 `SHOW TABLES LIKE ?`,
                 [tableName]
             );
 
+
+            // CREATE TABLE
             if (exists.length === 0) {
 
-                let createSQL = `CREATE TABLE \`${tableName}\` (
-                    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                let createSQL = `
+                CREATE TABLE \`${tableName}\` (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
                 `;
 
-                columns.forEach(col => {
+                for (const col of columns) {
 
-                    // ❗ rename MDB ID to avoid conflict
-                    let colName = col.name;
-                    if (colName.toLowerCase() === "id") {
-                        colName = "old_id";
-                    }
+                    let colName =
+                        col.name.toLowerCase() === "id"
+                        ? "old_id"
+                        : col.name;
 
-                    createSQL += `\`${colName}\` LONGTEXT NULL,`;
-                });
+                    createSQL += `
+                    \`${colName}\` LONGTEXT NULL,
+                    `;
+                }
 
-                createSQL += `source_file LONGTEXT NULL
-                )`;
+                createSQL += `
+                    source_file LONGTEXT NULL
+                ) ENGINE=InnoDB;
+                `;
 
                 await connection.query(createSQL);
 
-                console.log(`Created table ${tableName}`);
+                console.log(`Created ${tableName}`);
             }
 
+
+            // ADD SOURCE COLUMN
             else {
 
-                const [cols] = await connection.query(
+                let [cols] = await connection.query(
                     `SHOW COLUMNS FROM \`${tableName}\` LIKE 'source_file'`
                 );
 
                 if (cols.length === 0) {
                     await connection.query(
-                        `ALTER TABLE \`${tableName}\` ADD COLUMN source_file LONGTEXT NULL`
+                        `ALTER TABLE \`${tableName}\`
+                         ADD COLUMN source_file LONGTEXT NULL`
                     );
                 }
             }
 
+
             const rows = table.getData();
 
-            if (rows.length > 0) {
+            if (!rows.length) {
+                console.log("No records");
+                continue;
+            }
 
-                const columnNames = columns.map(c => {
-                    if (c.name.toLowerCase() === "id") {
-                        return "old_id";
-                    }
-                    return c.name;
+
+            const columnNames = columns.map(c =>
+                c.name.toLowerCase() === "id"
+                ? "old_id"
+                : c.name
+            );
+
+
+            const insertColumns = [
+                ...columnNames,
+                "source_file"
+            ];
+
+
+            const batchSize = 1000;
+
+
+            for (let i = 0; i < rows.length; i += batchSize) {
+
+
+                const batch = rows.slice(
+                    i,
+                    i + batchSize
+                );
+
+
+                const values = batch.map(row => {
+
+                    return columnNames.map(c => {
+
+                        if (c === "old_id") {
+                            return row.ID ?? row.id ?? null;
+                        }
+
+                        return row[c] ?? null;
+
+                    }).concat(sourceFile);
+
                 });
 
-                const insertColumns = [...columnNames, "source_file"];
 
-                const placeholders = insertColumns.map(() => "?").join(",");
+                const placeholders =
+                    values
+                    .map(row =>
+                        "(" +
+                        row.map(() => "?").join(",") +
+                        ")"
+                    )
+                    .join(",");
 
-                const insertSQL = `
+
+                const sql = `
                     INSERT INTO \`${tableName}\`
                     (${insertColumns.map(c => `\`${c}\``).join(",")})
-                    VALUES (${placeholders})
+                    VALUES ${placeholders}
                 `;
 
-                for (const row of rows) {
 
-                    const values = columnNames.map(c => {
-                        if (c === "old_id") return row["ID"] ?? row["id"] ?? null;
-                        return row[c] ?? null;
-                    });
+                await connection.query(
+                    sql,
+                    values.flat()
+                );
 
-                    values.push(sourceFile);
 
-                    await connection.execute(insertSQL, values);
-                }
+                console.log(
+                    `${tableName}: ${Math.min(
+                        i + batchSize,
+                        rows.length
+                    )}/${rows.length}`
+                );
 
-                console.log(`${rows.length} rows inserted`);
             }
 
-            else {
-                console.log("No records");
-            }
+
+            await connection.commit();
+
+            console.log(
+                `${rows.length} rows inserted`
+            );
+
 
             console.log("--------------------------------");
 
-        } catch (err) {
-            console.error(`Error importing ${tableName}:`, err.message);
+
+        } catch(err) {
+
+            console.error(
+                `Error importing ${tableName}:`,
+                err.message
+            );
+
         }
     }
 
+
+    await connection.query("SET FOREIGN_KEY_CHECKS=1");
+    await connection.query("SET UNIQUE_CHECKS=1");
+
     await connection.end();
-    console.log("Import Completed Successfully.");
+
+    console.log(
+        "Import Completed Successfully."
+    );
 }
 
-importDatabase();
+
+// importDatabase();
+module.exports = importDatabase;

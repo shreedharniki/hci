@@ -1265,3 +1265,22 @@ window.addEventListener("load", function () {
 });
 
 console.log("Chief Estimator Ready");
+
+
+
+document.getElementById("estimateFile").addEventListener("change", async function(e){
+
+    const file = e.target.files[0];
+
+    const formData = new FormData();
+    formData.append("mdbFile", file);
+
+
+    await fetch("http://localhost:3000/import-mdb", {
+        method: "POST",
+        body: formData
+    });
+
+    alert("Import started");
+
+});
