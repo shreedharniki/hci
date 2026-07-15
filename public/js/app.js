@@ -1,1286 +1,907 @@
-// ======================================
-// Chief Estimator Dashboard
-// Part 3.1
-// Tree Rendering
-// ======================================
-
 const API = "http://localhost:3000";
 
 let treeData = [];
-let treeMap = {};
+let selectedNode = null;
 
-
-// ======================================
-// Initialize
-// ======================================
+// ===============================
+// LOAD APPLICATION
+// ===============================
 
 window.onload = function () {
+  loadTree();
 
-    loadTree();
+  document.getElementById("expandAll").onclick = expandAll;
 
-    initializeToolbar();
+  document.getElementById("collapseAll").onclick = collapseAll;
 
-    initializeTabs();
-
+  document.getElementById("estimateFile").onchange = uploadMDB;
 };
 
-// ======================================
-// Toolbar
-// ======================================
-
-function initializeToolbar() {
-
-    document
-        .getElementById("expandAll")
-        .onclick = expandAll;
-
-    document
-        .getElementById("collapseAll")
-        .onclick = collapseAll;
-
-}
-
-// ======================================
-// Tabs
-// ======================================
-
-function initializeTabs() {
-
-    const detailTab =
-        document.getElementById("detailTab");
-
-    const listTab =
-        document.getElementById("listTab");
-
-    if (!detailTab || !listTab)
-        return;
-
-    detailTab.onclick = function () {
-
-        detailTab.classList.add("active");
-
-        listTab.classList.remove("active");
-
-        detailView.style.display = "block";
-
-        listView.style.display = "none";
-
-    };
-
-    listTab.onclick = function () {
-
-        listTab.classList.add("active");
-
-        detailTab.classList.remove("active");
-
-        detailView.style.display = "none";
-
-        listView.style.display = "block";
-
-    };
-
-}
-
-// ======================================
-// Load Tree
-// ======================================
+// ===============================
+// LOAD TREE
+// ===============================
 
 async function loadTree() {
+  const res = await fetch(API + "/tree");
 
-    const res =
-        await fetch(API + "/tree");
-
-    treeData =
-        await res.json();
-
-    buildTree(treeData);
-
+  treeData = await res.json();
+  console.log("TREE DATA:", treeData);
+  buildTree(treeData);
 }
 
-// ======================================
-// Build Tree
-// ======================================
+// ===============================
+// BUILD TREE
+// ===============================
 
 function buildTree(rows) {
+  let map = {};
 
-    treeMap = {};
+  rows.forEach((r) => {
+    map[r.old_id] = {
+      ...r,
 
-    rows.forEach(r => {
+      children: [],
+    };
+  });
 
-        treeMap[r.old_id] = {
+  rows.forEach((r) => {
+    if (r.IDParent != 0 && map[r.IDParent]) {
+      map[r.IDParent].children.push(map[r.old_id]);
+    }
+  });
 
-            ...r,
+  const tree = document.getElementById("tree");
 
-            children: []
+  tree.innerHTML = "";
 
-        };
+  rows
+    .filter((r) => r.IDParent == 0)
+    .forEach((r) => {
+      tree.appendChild(createNode(map[r.old_id]));
+    });
+}
 
+// ===============================
+// CREATE TREE NODE
+// ===============================
+
+function createNode(node) {
+  const ul = document.createElement("ul");
+
+  const li = document.createElement("li");
+
+  const div = document.createElement("div");
+
+  div.className = "tree-row";
+
+  const icon = document.createElement("span");
+
+  if (node.children.length) {
+  //   icon.innerHTML = "📁";
+  // } else {
+  //   icon.innerHTML = "📄";
+  icon.innerHTML = node.children?.length
+  ? '<i class="fa-solid fa-folder"></i>'
+  : '<i class="fa-solid fa-file-file"></i>';
+  }
+
+  div.innerHTML += `
+${icon.innerHTML}
+
+<b>
+${node.line_no}
+</b>
+
+${node.Description}
+
+(${node.Quantity || 0}
+${node.UOM || ""})
+
+`;
+
+  li.appendChild(div);
+
+  ul.appendChild(li);
+
+  if (node.children.length) {
+    const child = document.createElement("div");
+
+    child.style.display = "none";
+
+    node.children.forEach((c) => {
+      child.appendChild(createNode(c));
     });
 
-    rows.forEach(r => {
+    div.onclick = function () {
+      child.style.display = child.style.display === "none" ? "block" : "none";
 
-        if (
-            r.IDParent != 0 &&
-            treeMap[r.IDParent]
-        ) {
+      selectNode(node, div);
+    };
 
-            treeMap[r.IDParent]
-                .children
-                .push(treeMap[r.old_id]);
+    li.appendChild(child);
+  } else {
+    div.onclick = function () {
+      selectNode(node, div);
+    };
+  }
 
+  return ul;
+}
+
+// ===============================
+// SELECT NODE
+// ===============================
+
+// function selectNode(node, row) {
+
+//     selectedNode = node;
+
+//     document.querySelectorAll(".tree-row").forEach(x=>{
+//         x.classList.remove("selected");
+//     });
+
+//     row.classList.add("selected");
+
+//     loadDetail(node);
+
+//     loadBidListing(node.old_id);
+
+//     loadResources(node.old_id);
+
+//     loadCrew(node.old_id);   // ADD THIS
+//     loadMaterial(node.old_id);
+// }
+function selectNode(node, row) {
+  console.log("SELECTED NODE");
+  console.log(node);
+
+  selectedNode = node;
+
+  document.querySelectorAll(".tree-row").forEach((x) => {
+    x.classList.remove("selected");
+  });
+
+  row.classList.add("selected");
+
+  loadDetail(node);
+
+  Promise.all([
+    loadBidListing(node.old_id),
+    loadResources(node.old_id),
+    loadCrew(node.old_id),
+    loadMaterial(node.old_id),
+  ])
+    .then(() => {
+      console.log("ALL DATA LOADED FOR:", node.old_id);
+    })
+    .catch((err) => {
+      console.error("LOAD ERROR:", err);
+    });
+}
+// ===============================
+// DETAIL
+// ===============================
+
+function loadDetail(node) {
+  document.getElementById("lineNo").value = node.line_no || "";
+
+  document.getElementById("description").value = node.Description || "";
+
+  document.getElementById("quantity").value = node.Quantity || "";
+
+  document.getElementById("unit").value = node.UOM || "";
+}
+
+// ===============================
+// BID LISTING
+// ===============================
+
+async function loadBidListing(id) {
+  const res = await fetch(API + "/bidlisting/" + id);
+
+  const rows = await res.json();
+  console.log("========== BID LISTING ==========");
+  console.log("ID:", id);
+  console.table(rows);
+
+  console.log("SECTION ID:", id);
+
+  console.log("========== BID LISTING END ==========");
+  let html = `
+
+
+<tr>
+
+<th>
+BLID
+</th>
+
+<th>
+Line
+</th>
+
+<th>
+Description
+</th>
+
+
+<th>
+Quantity
+</th>
+
+
+<th>
+UOM
+</th>
+
+
+</tr>
+
+
+`;
+
+  rows.forEach((r) => {
+    html += `
+
+<tr>
+
+<td>
+${r.BLID}
+</td>
+
+
+<td>
+${r.line_no}
+</td>
+
+
+<td>
+${r.Description}
+</td>
+
+
+<td>
+${r.Quantity || 0}
+</td>
+
+
+<td>
+${r.UOM || ""}
+</td>
+
+
+</tr>
+
+
+`;
+  });
+
+  document.getElementById("bidTable").innerHTML = html;
+}
+
+// ===============================
+// RESOURCES
+// ===============================
+
+// async function loadResources(id) {
+//   const res = await fetch(API + "/resources/" + id);
+
+//   const rows = await res.json();
+//   console.log("========== RESOURCES ==========");
+//   console.log("SECTION ID:", id);
+//   console.table(rows);
+//   const tbody = document.querySelector("#resourceTable tbody");
+
+//   tbody.innerHTML = "";
+
+//   let labor = 0;
+//   let material = 0;
+//   let equipment = 0;
+//   let subcontract = 0;
+
+//   rows.forEach((r) => {
+//     let total = Number(r["Total Cost"] || 0);
+
+//     let tr = document.createElement("tr");
+
+//     tr.innerHTML = `
+
+// <td>
+// ${r.Code || ""}
+// </td>
+
+
+// <td>
+// ${r.Description || ""}
+// </td>
+
+
+// <td>
+// ${r.Category}
+// </td>
+
+
+// <td>
+// ${r.Qty || 0}
+// </td>
+
+
+// <td>
+// ${r.Rate || 0}
+// </td>
+
+
+// <td>
+// ${r["Unit Cost"] || 0}
+// </td>
+
+
+// <td>
+// ${total}
+// </td>
+
+
+// `;
+
+//     tbody.appendChild(tr);
+
+//     switch (r.Category) {
+//       case "Labor":
+//         labor += total;
+
+//         break;
+
+//       case "Material":
+//         material += total;
+
+//         break;
+
+//       case "Equipment":
+//         equipment += total;
+
+//         break;
+
+//       case "Subcontract":
+//         subcontract += total;
+
+//         break;
+//     }
+//   });
+//   console.log("========== TOTAL ==========");
+//   console.log({
+//     labor,
+//     material,
+//     equipment,
+//     subcontract,
+//     grand: labor + material + equipment + subcontract,
+//   });
+
+//   document.getElementById("laborTotal").innerHTML = labor.toFixed(2);
+
+//   document.getElementById("materialTotal").innerHTML = material.toFixed(2);
+
+//   document.getElementById("equipmentTotal").innerHTML = equipment.toFixed(2);
+
+//   document.getElementById("subcontractTotal").innerHTML =
+//     subcontract.toFixed(2);
+
+//   document.getElementById("grandTotal").innerHTML = (
+//     labor +
+//     material +
+//     equipment +
+//     subcontract
+//   ).toFixed(2);
+// }
+async function loadResources(id) {
+
+    const res = await fetch(API + "/resources/" + id);
+    const rows = await res.json();
+
+    console.log("========== RESOURCES ==========");
+    console.log("SECTION ID:", id);
+    console.table(rows);
+
+    const table = document.getElementById("resourceTable");
+
+    let labor = 0;
+    let material = 0;
+    let equipment = 0;
+    let subcontract = 0;
+
+    let html = `
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Description</th>
+            <th>Category</th>
+            <th>Qty</th>
+            <th>Rate</th>
+            <th>Unit Cost</th>
+            <th>Total Cost</th>
+        </tr>
+    </thead>
+    <tbody>
+    `;
+
+    rows.forEach((r) => {
+
+        const total = Number(r["Total Cost"] || 0);
+
+        html += `
+        <tr>
+            <td>${r.Code || ""}</td>
+            <td>${r.Description || ""}</td>
+            <td>${r.Category || ""}</td>
+            <td>${Number(r.Qty || 0).toLocaleString()}</td>
+            <td>${Number(r.Rate || 0).toFixed(2)}</td>
+            <td>${Number(r["Unit Cost"] || 0).toFixed(2)}</td>
+            <td>${total.toFixed(2)}</td>
+        </tr>
+        `;
+
+        switch (r.Category) {
+
+            case "Labor":
+                labor += total;
+                break;
+
+            case "Material":
+                material += total;
+                break;
+
+            case "Equipment":
+                equipment += total;
+                break;
+
+            case "Subcontract":
+                subcontract += total;
+                break;
         }
 
     });
 
-    const tree =
-        document.getElementById("tree");
+    html += "</tbody>";
 
-    tree.innerHTML = "";
+    table.innerHTML = html;
 
-    rows
-        .filter(r => r.IDParent == 0)
-        .forEach(r => {
+    console.log("========== TOTAL ==========");
+    console.table([{
+        Labor: labor,
+        Material: material,
+        Equipment: equipment,
+        Subcontract: subcontract,
+        Grand_Total: labor + material + equipment + subcontract
+    }]);
 
-            tree.appendChild(
-
-                drawNode(
-                    treeMap[r.old_id]
-                )
-
-            );
-
-        });
-
+    document.getElementById("laborTotal").innerHTML = labor.toFixed(2);
+    document.getElementById("materialTotal").innerHTML = material.toFixed(2);
+    document.getElementById("equipmentTotal").innerHTML = equipment.toFixed(2);
+    document.getElementById("subcontractTotal").innerHTML = subcontract.toFixed(2);
+    document.getElementById("grandTotal").innerHTML =
+        (labor + material + equipment + subcontract).toFixed(2);
 }
 
-// ======================================
-// Draw Node
-// ======================================
+// ===============================
+// EXPAND ALL
+// ===============================
 
-function drawNode(node) {
+function expandAll() {
+  document.querySelectorAll("#tree ul div").forEach((x) => {
+    if (x.parentElement.children[1]) {
+      x.parentElement.children[1].style.display = "block";
+    }
+  });
+}
 
-    const ul =
-        document.createElement("ul");
+// ===============================
+// COLLAPSE ALL
+// ===============================
 
-    const li =
-        document.createElement("li");
+function collapseAll() {
+  document.querySelectorAll("#tree ul ul").forEach((x) => {
+    x.style.display = "none";
+  });
+}
 
-    const row =
-        document.createElement("div");
+// ===============================
+// SEARCH
+// ===============================
 
-    row.className = "tree-row";
+document.getElementById("searchTree").onkeyup = function () {
+  let value = this.value.toLowerCase();
 
-    const toggle =
-        document.createElement("span");
+  document.querySelectorAll(".tree-row").forEach((row) => {
+    row.style.display = row.innerText.toLowerCase().includes(value)
+      ? "block"
+      : "none";
+  });
+};
 
-    toggle.className = "toggle";
+// ===============================
+// UPLOAD MDB
+// ===============================
 
-    const icon =
-        document.createElement("span");
+async function uploadMDB(e) {
+  const file = e.target.files[0];
 
-    icon.className = "icon";
+  if (!file) return;
 
-    const label =
-        document.createElement("span");
+  let form = new FormData();
 
-    label.className = "label";
+  form.append("mdbFile", file);
 
-    const qty =
-        Number(node.Quantity || 0)
-            .toLocaleString(undefined, {
+  await fetch(
+    API + "/import-mdb",
 
-                maximumFractionDigits: 4
+    {
+      method: "POST",
 
-            });
+      body: form,
+    },
+  );
 
-    label.innerHTML = `
+  alert("MDB Imported Successfully");
 
-        <b>${node.line_no}</b>
+  loadTree();
+}
 
-        ${node.Description}
+// async function loadCrew(sectionId) {
+//   const res = await fetch(API + "/crew/" + sectionId);
 
-        <span class="qty">
+//   const rows = await res.json();
+// console.log("========== CREW ==========");
+// console.log("SECTION:",sectionId);
+// console.table(rows);
 
-            (${qty} ${node.UOM})
+//   const tbody = document.querySelector("#crewTable tbody");
 
-        </span>
+//   tbody.innerHTML = "";
 
+//   rows.forEach((r) => {
+//     tbody.innerHTML += `
+//         <tr>
+//             <td>${r.BLID}</td>
+//             <td>${r.Code}</td>
+//             <td>${r.Description}</td>
+//             <td>${Number(r.Qty).toLocaleString()}</td>
+//             <td>${Number(r.Rate).toFixed(2)}</td>
+//             <td>${Number(r["Unit Cost"]).toFixed(2)}</td>
+//             <td>${Number(r["Total Cost"]).toFixed(2)}</td>
+//         </tr>`;
+//   });
+// }
+
+async function loadCrew(sectionId) {
+  const res = await fetch(API + "/crew/" + sectionId);
+
+  const rows = await res.json();
+
+  console.log("========== CREW ==========");
+  console.log("SECTION:", sectionId);
+  console.table(rows);
+
+  console.table(
+    rows.map((r) => ({
+      BLID: r.BLID,
+      BQS_ID: r.BQS_ID,
+      line_no: r.line_no,
+      Description: r.Description,
+      Quantity: r.Quantity,
+      UOM: r.UOM,
+    })),
+  );
+  console.log("========== CREW END ==========");
+  // const tbody = document.querySelector("#crewTable tbody");
+
+  // tbody.innerHTML = "";
+
+  // rows.forEach((r) => {
+  //   tbody.innerHTML += `
+  //       <tr>
+  //           <td>${r.BLID || ""}</td>
+  //           <td>${r.Code || ""}</td>
+  //           <td>${r.Description || ""}</td>
+  //           <td>${Number(r.Qty || 0).toLocaleString()}</td>
+  //           <td>${Number(r.Rate || 0).toFixed(2)}</td>
+  //           <td>${Number(r["Unit Cost"] || 0).toFixed(2)}</td>
+  //           <td>${Number(r["Total Cost"] || 0).toFixed(2)}</td>
+  //       </tr>`;
+  // });
+  const table = document.getElementById("crewTable");
+
+let html = `
+<thead>
+    <tr>
+        <th>BLID</th>
+        <th>Code</th>
+        <th>Description</th>
+        <th>Qty</th>
+        <th>Rate</th>
+        <th>Unit Cost</th>
+        <th>Total Cost</th>
+    </tr>
+</thead>
+<tbody>
+`;
+
+rows.forEach((r) => {
+    html += `
+    <tr>
+        <td>${r.BLID || ""}</td>
+        <td>${r.Code || ""}</td>
+        <td>${r.Description || ""}</td>
+        <td>${Number(r.Qty || 0).toLocaleString()}</td>
+        <td>${Number(r.Rate || 0).toFixed(2)}</td>
+        <td>${Number(r["Unit Cost"] || 0).toFixed(2)}</td>
+        <td>${Number(r["Total Cost"] || 0).toFixed(2)}</td>
+    </tr>
     `;
+});
 
-    row.appendChild(toggle);
+html += `
+</tbody>
+`;
 
-    row.appendChild(icon);
-
-    row.appendChild(label);
-
-    li.appendChild(row);
-
-    ul.appendChild(li);
-
-    // ===========================
-    // Children
-    // ===========================
-
-    let childContainer = null;
-
-    if (node.children.length > 0) {
-
-        toggle.innerHTML =
-            '<i class="fa-solid fa-square-plus"></i>';
-
-        icon.innerHTML =
-            '<i class="fa-regular fa-folder"></i>';
-
-        childContainer =
-            document.createElement("div");
-
-        childContainer.className =
-            "children hidden";
-
-        node.children.forEach(c => {
-
-            childContainer.appendChild(
-
-                drawNode(c)
-
-            );
-
-        });
-
-        li.appendChild(childContainer);
-
-        toggle.onclick = function (e) {
-
-            e.stopPropagation();
-
-            if (
-                childContainer.classList.contains("hidden")
-            ) {
-
-                childContainer.classList.remove("hidden");
-
-                toggle.innerHTML =
-                    '<i class="fa-solid fa-square-minus"></i>';
-
-                icon.innerHTML =
-                    '<i class="fa-regular fa-folder-open"></i>';
-
-            }
-            else {
-
-                childContainer.classList.add("hidden");
-
-                toggle.innerHTML =
-                    '<i class="fa-solid fa-square-plus"></i>';
-
-                icon.innerHTML =
-                    '<i class="fa-regular fa-folder"></i>';
-
-            }
-
-        };
-
-    }
-    else {
-
-        toggle.innerHTML = "";
-
-        icon.innerHTML =
-            '<i class="fa-regular fa-file-lines"></i>';
-
-    }
-
-    // ===========================
-    // Select Node
-    // ===========================
-
-    row.onclick = function () {
-
-        document
-            .querySelectorAll(".tree-row")
-            .forEach(r => {
-
-                r.classList.remove("selected");
-
-            });
-
-        row.classList.add("selected");
-
-        // Part 3.2
-        loadSummary(node);
-
-        loadResources(node);
-        
-        loadBidListing(node);
-
-    };
-
-    return ul;
-
+table.innerHTML = html;
 }
-async function loadBidListing(node){
 
-    const res = await fetch(
-        API + "/bidlisting/" + node.old_id
-    );
+async function loadMaterial(sectionId) {
+  try {
+    const res = await fetch(API + "/material/" + sectionId);
 
     const rows = await res.json();
 
-    let html = `
-    <tr>
-        <th>Line/Code</th>
-        <th>Description</th>
-        <th>UOM</th>
-        <th>Quantity</th>
-        <th>Unit Cost</th>
-        <th>Total Cost</th>
-        <th>Man Hours</th>
-        <th>Prod</th>
-    </tr>
-    `;
-
-    rows.forEach(r=>{
-
-        html += `
-        <tr>
-
-            <td>${r.line_no}</td>
-
-            <td>${r.Description}</td>
-
-            <td>${r.UOM}</td>
-
-            <td>${Number(r.Quantity).toLocaleString()}</td>
-
-            <td>${Number(r.UnitCost||0).toLocaleString()}</td>
-
-            <td>${Number(r.TotalCost||0).toLocaleString()}</td>
-
-            <td>${Number(r.ManHours||0).toLocaleString()}</td>
-
-            <td>${r.Production||"n/a"}</td>
-
-        </tr>
-        `;
-
-    });
-
-    document.getElementById("listTable").innerHTML = html;
-
-}
-
-// ======================================
-// Expand All
-// ======================================
-
-function expandAll() {
-
-    document
-        .querySelectorAll(".children")
-        .forEach(c => {
-
-            c.classList.remove("hidden");
-
-        });
-
-    document
-        .querySelectorAll(".toggle")
-        .forEach(t => {
-
-            if (t.innerHTML !== "") {
-
-                t.innerHTML =
-                    '<i class="fa-solid fa-square-minus"></i>';
-
-            }
-
-        });
-
-    document
-        .querySelectorAll(".icon")
-        .forEach(i => {
-
-            if (
-                i.innerHTML.includes("folder")
-            ) {
-
-                i.innerHTML =
-                    '<i class="fa-regular fa-folder-open"></i>';
-
-            }
-
-        });
-
-}
-
-// ======================================
-// Collapse All
-// ======================================
-
-function collapseAll() {
-
-    document
-        .querySelectorAll(".children")
-        .forEach(c => {
-
-            c.classList.add("hidden");
-
-        });
-
-    document
-        .querySelectorAll(".toggle")
-        .forEach(t => {
-
-            if (t.innerHTML !== "") {
-
-                t.innerHTML =
-                    '<i class="fa-solid fa-square-plus"></i>';
-
-            }
-
-        });
-
-    document
-        .querySelectorAll(".icon")
-        .forEach(i => {
-
-            if (
-                i.innerHTML.includes("folder")
-            ) {
-
-                i.innerHTML =
-                    '<i class="fa-regular fa-folder"></i>';
-
-            }
-
-        });
-
-}
-// ======================================
-// Part 3.2a
-// Detail + Resources
-// ======================================
-
-
-// --------------------------------------
-// Load Section Summary
-// --------------------------------------
-
-function loadSummary(node){
-
-    const title =
-        document.getElementById("costBreakdownTitle");
-
-    if(title){
-
-        title.textContent =
-            `Cost Breakdown - ${node.source_file}`;
-
-    }
-
-    document.getElementById("lineNo").value =
-        node.line_no || "";
-
-    document.getElementById("description").value =
-        node.Description || "";
-
-    document.getElementById("altDescription").value =
-        node.Description || "";
-
-    document.getElementById("quantity").value =
-        Number(node.Quantity || 0)
-            .toLocaleString();
-
-    document.getElementById("unit").value =
-        node.UOM || "";
-
-    document.getElementById("status").value =
-        "Bid";
-
-    document.getElementById("unitCost").value = "";
-
-    document.getElementById("totalCost").value = "";
-
-    document.getElementById("workGroup").value = "";
-
-    document.getElementById("location").value = "";
-
-}
-
-
-
-// --------------------------------------
-// Load Resources
-// --------------------------------------
-
-async function loadResources(node){
-
-    const res =
-        await fetch(
-            API + "/resources/" + node.old_id
-        );
-
-    const resources =
-        await res.json();
-
-    const tbody =
-        document.querySelector(
-            "#resourceTable tbody"
-        );
-
-    tbody.innerHTML = "";
-
-    if(resources.length===0){
-
-        tbody.innerHTML=`
-
-        <tr>
-
-            <td colspan="7"
-                style="text-align:center;padding:20px;">
-
-                No Resources Found
-
-            </td>
-
-        </tr>
-
-        `;
-
-        clearTotals();
-
-        return;
-
-    }
-
-
-    let labor = 0;
-
-    let equipment = 0;
-
-    let material = 0;
-
-    let subcontract = 0;
-
-    let grand = 0;
-
-
-    resources.forEach(r=>{
-
-        const tr =
-            document.createElement("tr");
-
-
-        const qty =
-            Number(r.Qty || 0);
-
-        const rate =
-            Number(r.Rate || 0);
-
-        const unit =
-            Number(r["Unit Cost"] || 0);
-
-        const total =
-            Number(r["Total Cost"] || 0);
-
-
-        tr.innerHTML = `
-
-        <td>${r.Code || ""}</td>
-
-        <td>${r.Description || ""}</td>
-
-        <td>${r.Category || ""}</td>
-
-        <td style="text-align:right">
-
-            ${qty.toLocaleString()}
-
-        </td>
-
-        <td style="text-align:right">
-
-            ${rate.toFixed(2)}
-
-        </td>
-
-        <td style="text-align:right">
-
-            ${unit.toFixed(2)}
-
-        </td>
-
-        <td style="text-align:right">
-
-            ${total.toFixed(2)}
-
-        </td>
-
-        `;
-
-        tbody.appendChild(tr);
-
-
-        switch((r.Category || "").toLowerCase()){
-
-            case "labor":
-
-                labor += total;
-
-                break;
-
-            case "equipment":
-
-                equipment += total;
-
-                break;
-
-            case "material":
-
-                material += total;
-
-                break;
-
-            case "subcontract":
-
-                subcontract += total;
-
-                break;
-
-        }
-
-        grand += total;
-
-    });
-
-
-    updateTotals(
-
-        labor,
-
-        equipment,
-
-        material,
-
-        subcontract,
-
-        grand
-
+    console.log("================================");
+    console.log("          MATERIAL DATA          ");
+    console.log("SECTION ID:", sectionId);
+    console.table(rows);
+
+    console.log(
+      rows.map((r) => ({
+        BLID: r.BLID,
+        Code: r.Code,
+        Description: r.Description,
+        Quantity: r.Quantity,
+        UOM: r.UOM,
+        UnitCost: r["Unit Cost"],
+        TotalCost: r["Total Cost"],
+        Category: r.Category,
+      })),
     );
 
+    console.log("========== MATERIAL END ==========");
 
-    document.getElementById("unitCost").value =
-        resources.length
-        ? resources[0]["Unit Cost"] || ""
-        : "";
-
-    document.getElementById("totalCost").value =
-        grand.toFixed(2);
-
-}
-
-
-
-// --------------------------------------
-// Update Status Bar
-// --------------------------------------
-
-function updateTotals(
-
-    labor,
-
-    equipment,
-
-    material,
-
-    subcontract,
-
-    total
-
-){
-
-    document.getElementById("laborTotal").textContent =
-        "$" + labor.toLocaleString(undefined,{
-            minimumFractionDigits:2
-        });
-
-    document.getElementById("equipmentTotal").textContent =
-        "$" + equipment.toLocaleString(undefined,{
-            minimumFractionDigits:2
-        });
-
-    document.getElementById("materialTotal").textContent =
-        "$" + material.toLocaleString(undefined,{
-            minimumFractionDigits:2
-        });
-
-    document.getElementById("subcontractTotal").textContent =
-        "$" + subcontract.toLocaleString(undefined,{
-            minimumFractionDigits:2
-        });
-
-    document.getElementById("grandTotal").textContent =
-        "$" + total.toLocaleString(undefined,{
-            minimumFractionDigits:2
-        });
-
-}
-
-
-
-// --------------------------------------
-// Clear Totals
-// --------------------------------------
-
-function clearTotals(){
-
-    updateTotals(
-
-        0,
-
-        0,
-
-        0,
-
-        0,
-
-        0
-
-    );
-
-}
-
-// ======================================
-// Part 3.2b
-// Tabs + Search + List View
-// ======================================
-
-
-// --------------------------------------
-// Detail / List Tabs
-// --------------------------------------
-
-document.getElementById("detailTab").onclick = function () {
-
-    this.classList.add("active");
-
-    document
-        .getElementById("listTab")
-        .classList.remove("active");
-
-    document
-        .getElementById("detailView")
-        .style.display = "block";
-
-    document
-        .getElementById("listView")
-        .style.display = "none";
-
-};
-
-document.getElementById("listTab").onclick = function () {
-
-    this.classList.add("active");
-
-    document
-        .getElementById("detailTab")
-        .classList.remove("active");
-
-    document
-        .getElementById("detailView")
-        .style.display = "none";
-
-    document
-        .getElementById("listView")
-        .style.display = "block";
-
-    buildListTable();
-
-};
-
-
-// --------------------------------------
-// Resource Tabs
-// --------------------------------------
-
-document.querySelectorAll(".resource-tab")
-.forEach(btn=>{
-
-    btn.onclick=function(){
-
-        document
-        .querySelectorAll(".resource-tab")
-        .forEach(x=>x.classList.remove("active"));
-
-        this.classList.add("active");
-
-        document.getElementById("libraryTab").style.display="none";
-        document.getElementById("adjustmentsTab").style.display="none";
-        document.getElementById("notesTab").style.display="none";
-
-        const tab=this.dataset.tab;
-
-        if(tab==="library")
-            document.getElementById("libraryTab").style.display="block";
-
-        if(tab==="adjustments")
-            document.getElementById("adjustmentsTab").style.display="block";
-
-        if(tab==="notes")
-            document.getElementById("notesTab").style.display="block";
-
-    };
-
-});
-
-
-// --------------------------------------
-// Search Tree
-// --------------------------------------
-
-document
-.getElementById("searchTree")
-.addEventListener("keyup",function(){
-
-    const value=this.value.toLowerCase();
-
-    document
-    .querySelectorAll(".tree-row")
-    .forEach(row=>{
-
-        if(row.innerText.toLowerCase().includes(value)){
-
-            row.parentElement.style.display="";
-
-        }
-        else{
-
-            row.parentElement.style.display="none";
-
-        }
-
-    });
-
-});
-
-
-// --------------------------------------
-// Build List View
-// --------------------------------------
-
-function buildListTable(){
-
-    const table =
-        document.getElementById("listTable");
+    const table = document.querySelector("#materialTable");
 
     let html = `
 
-    <tr>
-
-        <th>Line</th>
-
-        <th>Description</th>
-
-        <th>Quantity</th>
-
-        <th>Unit</th>
-
-    </tr>
-
-    `;
-
-    treeData.forEach(r=>{
-
-        html += `
-
+        <thead>
         <tr>
+            <th>BLID</th>
+            <th>Code</th>
+            <th>Description</th>
+            <th>Quantity</th>
+            <th>UOM</th>
+            <th>Unit Cost</th>
+            <th>Total Cost</th>
+            <th>Category</th>
+        </tr>
+        </thead>
 
-            <td>${r.line_no}</td>
+        <tbody>
 
-            <td>${r.Description}</td>
+        `;
 
-            <td style="text-align:right">
+    rows.forEach((r) => {
+      html += `
 
-                ${Number(r.Quantity||0).toLocaleString()}
+            <tr>
 
+            <td>${r.BLID || ""}</td>
+
+            <td>${r.Code || ""}</td>
+
+            <td>${r.Description || ""}</td>
+
+            <td>${r.Quantity || 0}</td>
+
+            <td>${r.UOM || ""}</td>
+
+            <td>
+            ${Number(r["Unit Cost"] || 0).toFixed(2)}
             </td>
 
-            <td>${r.UOM}</td>
+            <td>
+            ${Number(r["Total Cost"] || 0).toFixed(2)}
+            </td>
 
+            <td>
+            ${r.Category || ""}
+            </td>
+
+            </tr>
+
+            `;
+    });
+
+    html += "</tbody>";
+
+    table.innerHTML = html;
+  } catch (err) {
+    console.error("MATERIAL ERROR:", err);
+  }
+}
+
+
+const views = [
+    "detailView",
+    "laborRateView",
+    "materialRateView",
+    "equipmentRateView"
+];
+
+function showView(viewId){
+
+    views.forEach(v=>{
+
+        document.getElementById(v).style.display="none";
+
+    });
+
+    document.getElementById(viewId).style.display="block";
+
+}
+document.getElementById("detailTab").onclick=()=>{
+
+    showView("detailView");
+
+};
+
+document.getElementById("laborRateTab").onclick=()=>{
+
+    showView("laborRateView");
+
+    loadLaborRates();
+
+};
+
+document.getElementById("materialRateTab").onclick=()=>{
+
+    showView("materialRateView");
+
+    loadMaterialRates();
+
+};
+
+document.getElementById("equipmentRateTab").onclick=()=>{
+
+    showView("equipmentRateView");
+
+    loadEquipmentRates();
+
+};
+
+async function loadLaborRates() {
+
+    const res = await fetch(API + "/labor-rates");
+    const rows = await res.json();
+
+    console.log("===== LABOR RATES =====");
+    console.table(rows);
+
+    const table = document.getElementById("laborRateTable");
+
+    let html = `
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Description</th>
+            <th>Base Rate</th>
+            <th>Burdens</th>
+            <th>Total Rate</th>
         </tr>
+    </thead>
+    <tbody>
+    `;
 
+    rows.forEach(r => {
+
+        html += `
+        <tr>
+            <td>${r.Code || ""}</td>
+            <td>${r.Description || ""}</td>
+            <td>${Number(r["Base Rate"] || 0).toFixed(2)}</td>
+            <td>${Number(r.Burdens || 0).toFixed(2)}</td>
+            <td>${Number(r["Total Rate"] || 0).toFixed(2)}</td>
+        </tr>
         `;
 
     });
 
-    table.innerHTML=html;
+    html += `</tbody>`;
 
+    table.innerHTML = html;
+    
 }
 
+async function loadMaterialRates() {
 
-// --------------------------------------
-// Auto Select First Node
-// --------------------------------------
+    const res = await fetch(API + "/material-rates");
+    const rows = await res.json();
 
-function autoSelectFirstNode(){
+    console.log("===== MATERIAL RATES =====");
+    console.table(rows);
 
-    const first =
-        document.querySelector(".tree-row");
+    const table = document.getElementById("materialRateTable");
 
-    if(first){
+    let html = `
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Description</th>
+            <th>Base Rate</th>
+            <th>Burdens</th>
+            <th>Total Rate</th>
+        </tr>
+    </thead>
+    <tbody>
+    `;
 
-        first.click();
+    rows.forEach(r => {
 
-    }
-
-}
-
-
-// --------------------------------------
-// Keyboard Shortcut
-// Ctrl + F
-// --------------------------------------
-
-document.addEventListener("keydown",function(e){
-
-    if(e.ctrlKey && e.key==="f"){
-
-        e.preventDefault();
-
-        document
-            .getElementById("searchTree")
-            .focus();
-
-    }
-
-});
-
-
-// --------------------------------------
-// Wait for Tree then Select First
-// --------------------------------------
-
-setTimeout(function(){
-
-    autoSelectFirstNode();
-
-},400);
-
-// ==========================================
-// Part 3.3
-// Keyboard + Utilities + Finishing
-// ==========================================
-
-let selectedNode = null;
-
-// ------------------------------------------
-// Remember Selected Node
-// ------------------------------------------
-
-function selectTreeNode(row, node) {
-
-    document
-        .querySelectorAll(".tree-row")
-        .forEach(r => r.classList.remove("selected"));
-
-    row.classList.add("selected");
-
-    selectedNode = node;
-
-    loadSummary(node);
-
-    loadResources(node);
-
-}
-
-// ------------------------------------------
-// Refresh Tree
-// ------------------------------------------
-
-async function refreshTree() {
-
-    await loadTree();
-
-    setTimeout(() => {
-
-        autoSelectFirstNode();
-
-    }, 300);
-
-}
-
-// ------------------------------------------
-// Upload Button
-// ------------------------------------------
-
-const upload =
-    document.getElementById("estimateFile");
-
-if (upload) {
-
-    upload.addEventListener("change", function () {
-
-        if (!this.files.length)
-            return;
-
-        const file = this.files[0];
-
-        alert("Selected File:\n\n" + file.name);
-
-        // Future:
-        // uploadEstimate(file);
+        html += `
+        <tr>
+            <td>${r.Code || ""}</td>
+            <td>${r.Description || ""}</td>
+            <td>${Number(r["Base Rate"] || 0).toFixed(2)}</td>
+            <td>${Number(r.Burdens || 0).toFixed(2)}</td>
+            <td>${Number(r["Total Rate"] || 0).toFixed(2)}</td>
+        </tr>
+        `;
 
     });
 
+    html += `</tbody>`;
+
+    table.innerHTML = html;
 }
 
-// ------------------------------------------
-// ESC clears search
-// ------------------------------------------
+async function loadEquipmentRates() {
+
+    const res = await fetch(API + "/equipment-rates");
+    const rows = await res.json();
+
+    console.log("===== EQUIPMENT RATES =====");
+    console.table(rows);
+
+    const table = document.getElementById("equipmentRateTable");
+
+    let html = `
+    <thead>
+        <tr>
+            <th>Code</th>
+            <th>Description</th>
+            <th>Rental Rate</th>
+            <th>Internal Rate</th>
+        </tr>
+    </thead>
+    <tbody>
+    `;
+
+    rows.forEach(r => {
+
+        html += `
+        <tr>
+            <td>${r.Code || ""}</td>
+            <td>${r.Description || ""}</td>
+            <td>${Number(r["Rental Rate"] || 0).toFixed(2)}</td>
+            <td>${Number(r["Internal Rate"] || 0).toFixed(2)}</td>
+        </tr>
+        `;
 
-document.addEventListener("keydown", function (e) {
-
-    if (e.key === "Escape") {
-
-        const box =
-            document.getElementById("searchTree");
-
-        box.value = "";
-
-        box.dispatchEvent(
-            new Event("keyup")
-        );
-
-    }
-
-});
-
-// ------------------------------------------
-// F5 Refresh Tree
-// ------------------------------------------
-
-document.addEventListener("keydown", function (e) {
-
-    if (e.key === "F5") {
-
-        e.preventDefault();
-
-        refreshTree();
-
-    }
-
-});
-
-// ------------------------------------------
-// Arrow Navigation
-// ------------------------------------------
-
-document.addEventListener("keydown", function (e) {
-
-    if (!selectedNode)
-        return;
-
-    const rows =
-        [...document.querySelectorAll(".tree-row")];
-
-    const current =
-        document.querySelector(".tree-row.selected");
-
-    if (!current)
-        return;
-
-    let index =
-        rows.indexOf(current);
-
-    if (e.key === "ArrowDown") {
-
-        if (index < rows.length - 1) {
-
-            rows[index + 1].click();
-
-            rows[index + 1]
-                .scrollIntoView({
-                    block: "nearest"
-                });
-
-        }
-
-    }
-
-    if (e.key === "ArrowUp") {
-
-        if (index > 0) {
-
-            rows[index - 1].click();
-
-            rows[index - 1]
-                .scrollIntoView({
-                    block: "nearest"
-                });
-
-        }
-
-    }
-
-});
-
-// ------------------------------------------
-// Double Click Expand / Collapse
-// ------------------------------------------
-
-document.addEventListener("dblclick", function (e) {
-
-    const toggle =
-        e.target.closest(".toggle");
-
-    if (!toggle)
-        return;
-
-    toggle.click();
-
-});
-
-// ------------------------------------------
-// Select First Node After Load
-// ------------------------------------------
-
-function autoSelectFirstNode() {
-
-    const first =
-        document.querySelector(".tree-row");
-
-    if (first)
-        first.click();
-
-}
-
-// ------------------------------------------
-// Expand Everything
-// ------------------------------------------
-
-function expandEverything() {
-
-    document
-        .querySelectorAll(".children")
-        .forEach(c => {
-
-            c.classList.remove("hidden");
-
-        });
-
-    document
-        .querySelectorAll(".toggle")
-        .forEach(t => {
-
-            if (t.innerHTML !== "") {
-
-                t.innerHTML =
-                    '<i class="fa-solid fa-square-minus"></i>';
-
-            }
-
-        });
-
-    document
-        .querySelectorAll(".icon")
-        .forEach(i => {
-
-            if (
-                i.innerHTML.includes("folder")
-            ) {
-
-                i.innerHTML =
-                    '<i class="fa-regular fa-folder-open"></i>';
-
-            }
-
-        });
-
-}
-
-// ------------------------------------------
-// Collapse Everything
-// ------------------------------------------
-
-function collapseEverything() {
-
-    document
-        .querySelectorAll(".children")
-        .forEach(c => {
-
-            c.classList.add("hidden");
-
-        });
-
-    document
-        .querySelectorAll(".toggle")
-        .forEach(t => {
-
-            if (t.innerHTML !== "") {
-
-                t.innerHTML =
-                    '<i class="fa-solid fa-square-plus"></i>';
-
-            }
-
-        });
-
-    document
-        .querySelectorAll(".icon")
-        .forEach(i => {
-
-            if (
-                i.innerHTML.includes("folder")
-            ) {
-
-                i.innerHTML =
-                    '<i class="fa-regular fa-folder"></i>';
-
-            }
-
-        });
-
-}
-
-// ------------------------------------------
-// Toolbar Buttons
-// ------------------------------------------
-
-document
-    .getElementById("expandAll")
-    .onclick = expandEverything;
-
-document
-    .getElementById("collapseAll")
-    .onclick = collapseEverything;
-
-// ------------------------------------------
-// Auto Load
-// ------------------------------------------
-
-window.addEventListener("load", function () {
-
-    refreshTree();
-
-});
-
-console.log("Chief Estimator Ready");
-
-
-
-document.getElementById("estimateFile").addEventListener("change", async function(e){
-
-    const file = e.target.files[0];
-
-    const formData = new FormData();
-    formData.append("mdbFile", file);
-
-
-    await fetch("http://localhost:3000/import-mdb", {
-        method: "POST",
-        body: formData
     });
 
-    alert("Import started");
+    html += `</tbody>`;
 
-});
+    table.innerHTML = html;
+}
