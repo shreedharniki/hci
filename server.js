@@ -107,57 +107,118 @@ async(req,res)=>{
 // ===============================
 
 
-app.get("/tree",async(req,res)=>{
+// app.get("/tree",async(req,res)=>{
 
+
+// let conn;
+
+
+// try{
+
+
+// conn = await getConnection();
+
+
+
+// const [rows] = await conn.query(`
+
+// SELECT
+
+// old_id,
+// IDParent,
+// Level,
+// Sequence,
+// line_no,
+// Description,
+// Quantity,
+// UOM,
+// source_file
+
+
+// FROM bq_sections
+
+// ORDER BY Sequence
+
+
+// `);
+
+
+
+// res.json(rows);
+
+
+
+// }
+// catch(err){
+
+
+// res.status(500).json({
+
+// error:err.message
+
+// });
+
+
+// }
+// finally{
+
+// if(conn)
+// conn.end();
+
+// }
+
+
+// });
+
+app.get("/tree", async(req,res)=>{
 
 let conn;
 
-
 try{
 
-
 conn = await getConnection();
-
 
 
 const [rows] = await conn.query(`
 
 SELECT
 
-old_id,
-IDParent,
-Level,
-Sequence,
-line_no,
-Description,
-Quantity,
-UOM,
-source_file
+b.old_id,
+b.IDParent,
+b.Level,
+b.Sequence,
+b.line_no,
+b.Description,
+b.Quantity,
+b.UOM,
+b.source_file,
+
+c.currency AS currency
 
 
-FROM bq_sections
+FROM bq_sections b
 
-ORDER BY Sequence
+LEFT JOIN currency c
+ON c.id = 1
+
+
+ORDER BY b.Sequence
 
 
 `);
 
 
-
 res.json(rows);
-
 
 
 }
 catch(err){
-
 
 res.status(500).json({
 
 error:err.message
 
 });
-
 
 }
 finally{
@@ -167,10 +228,7 @@ conn.end();
 
 }
 
-
 });
-
-
 
 
 
@@ -326,251 +384,6 @@ app.get("/resources/:id", async(req,res)=>{
 
 });
 
-// app.get("/crew/:sectionId", async (req, res) => {
-
-//     const conn = await getConnection();
-
-//     try {
-
-//         const [bidLines] = await conn.query(
-//             "SELECT BLID FROM bid_lines WHERE BQS_ID=?",
-//             [req.params.sectionId]
-//         );
-
-//         if (!bidLines.length) {
-//             return res.json([]);
-//         }
-
-//         const ids = bidLines.map(x => x.BLID);
-
-//         const p = ids.map(() => "?").join(",");
-
-//         const [rows] = await conn.query(`
-//             SELECT
-//                 BLID,
-//                 Code,
-//                 Description,
-//                 Qty,
-//                 Rate,
-//                 \`Unit Cost\`,
-//                 \`Total Cost\`
-//             FROM s_crew
-//             WHERE BLID IN (${p})
-//             ORDER BY BLID
-//         `, ids);
-
-//         res.json(rows);
-
-//     } catch (err) {
-
-//         res.status(500).json({
-//             error: err.message
-//         });
-
-//     } finally {
-
-//         conn.end();
-
-//     }
-
-// });
-
-
-
-
-// ===============================
-// GET ANY TABLE
-// ===============================
-
-
-// app.get("/crew/:sectionId", async (req, res) => {
-
-//     const conn = await getConnection();
-
-//     try {
-
-
-//         console.log("SECTION ID:", req.params.sectionId);
-
-
-//         const [bidLines] = await conn.query(
-//             `
-//             SELECT BLID,BQS_ID
-//             FROM bid_lines
-//             WHERE BQS_ID=?
-//             `,
-//             [req.params.sectionId]
-//         );
-
-
-//         console.log("BID LINES:");
-//         console.table(bidLines);
-
-
-
-//         const ids = bidLines.map(x=>x.BLID);
-
-
-//         console.log("BLID LIST:");
-//         console.log(ids);
-
-
-
-//         if(!ids.length){
-//             return res.json([]);
-//         }
-
-
-
-//         const p = ids.map(()=>"?").join(",");
-
-
-
-//         const [rows] = await conn.query(
-//             `
-//             SELECT
-//                 BLID,
-//                 Code,
-//                 Description,
-//                 Qty,
-//                 Rate,
-//                 \`Unit Cost\`,
-//                 \`Total Cost\`,
-//                 Category
-
-//             FROM s_crew
-
-//             WHERE BLID IN (${p})
-
-//             ORDER BY BLID
-
-//             `,
-//             ids
-//         );
-
-
-
-//         console.log("CREW DATA:");
-//         console.table(rows);
-
-
-
-//         res.json(rows);
-
-
-
-//     }catch(err){
-
-//         console.log(err);
-
-//         res.status(500).json({
-//             error:err.message
-//         });
-
-
-//     }finally{
-
-//         conn.end();
-
-//     }
-
-// });
-
-// app.get("/crew/:sectionId", async (req, res) => {
-
-//     const conn = await getConnection();
-
-//     try {
-
-
-//         console.log("SECTION ID:", req.params.sectionId);
-
-
-//         const [bidLines] = await conn.query(
-//             `
-//             SELECT BLID,BQS_ID
-//             FROM bid_lines
-//             WHERE BQS_ID=?
-//             `,
-//             [req.params.sectionId]
-//         );
-
-
-//         console.log("BID LINES:");
-//         console.table(bidLines);
-
-
-
-//         const ids = bidLines.map(x=>x.BLID);
-
-
-//         console.log("BLID LIST:");
-//         console.log(ids);
-
-
-
-//         if(!ids.length){
-//             return res.json([]);
-//         }
-
-
-
-//         const p = ids.map(()=>"?").join(",");
-
-
-
-//         const [rows] = await conn.query(
-//             `
-//             SELECT
-//                 BLID,
-//                 Code,
-//                 Description,
-//                 Qty,
-//                 Rate,
-//                 \`Unit Cost\`,
-//                 \`Total Cost\`,
-//                 Category
-
-//             FROM s_crew
-
-//             WHERE BLID IN (${p})
-
-//             ORDER BY BLID
-
-//             `,
-//             ids
-//         );
-
-
-
-//         console.log("CREW DATA:");
-//         console.table(rows);
-
-
-
-//         res.json(rows);
-
-
-
-//     }catch(err){
-
-//         console.log(err);
-
-//         res.status(500).json({
-//             error:err.message
-//         });
-
-
-//     }finally{
-
-//         conn.end();
-
-//     }
-
-// });
-
-
-
 app.get("/crew/:sectionId", async(req,res)=>{
 
     const conn = await getConnection();
@@ -670,103 +483,6 @@ app.get("/crew/:sectionId", async(req,res)=>{
 });
 
 
-
-// app.get("/material/:sectionId", async(req,res)=>{
-
-
-// const conn = await getConnection();
-
-
-// try{
-
-
-// const [bidLines]=await conn.query(
-
-// `
-// SELECT BLID
-// FROM bid_lines
-// WHERE BQS_ID=?
-// `,
-// [
-// req.params.sectionId
-// ]
-
-// );
-
-
-
-// if(!bidLines.length){
-
-// return res.json([]);
-
-// }
-
-
-
-// const ids =
-// bidLines.map(x=>x.BLID);
-
-
-
-// const p =
-// ids.map(()=>"?").join(",");
-
-
-
-// const [rows]=await conn.query(
-
-// `
-// SELECT
-
-// BLID,
-// Code,
-// Description,
-// Quantity,
-// UOM,
-// \`Unit Cost\`,
-// \`Total Cost\`,
-// Category
-
-// FROM s_material
-
-// WHERE BLID IN (${p})
-
-// ORDER BY BLID
-
-// `,
-
-// ids
-
-// );
-
-
-
-// console.table(rows);
-
-
-// res.json(rows);
-
-
-
-// }
-// catch(err){
-
-// res.status(500).json({
-// error:err.message
-// });
-
-// }
-// finally{
-
-// conn.end();
-
-// }
-
-
-// });
-
-
-
 app.get("/material/:sectionId", async(req,res)=>{
 
     const conn = await getConnection();
@@ -851,28 +567,28 @@ app.get("/material/:sectionId", async(req,res)=>{
     }
 
 });
-app.get(
-"/table/:name",
-async(req,res)=>{
 
 
-let conn;
+app.get("/table/:name",async(req,res)=>{
 
 
-try{
+    let conn;
 
 
-conn=await getConnection();
+    try{
 
 
-
-const table=req.params.name;
+    conn=await getConnection();
 
 
 
-const [rows]=await conn.query(
+    const table=req.params.name;
 
-`SELECT * FROM \`${table}\` LIMIT 1000`
+
+
+    const [rows]=await conn.query(
+
+    `SELECT * FROM \`${table}\` LIMIT 1000`
 
 );
 
@@ -906,117 +622,372 @@ conn.end();
 });
 
 
+app.get("/tables",async(req,res)=>{
 
 
+    const conn =
+    await getConnection();
 
 
-// ===============================
-// ALL TABLES
-// ===============================
+    const [rows]=
+    await conn.query(
+    "SHOW TABLES"
+    );
 
 
-app.get(
-"/tables",
-async(req,res)=>{
-
-
-const conn =
-await getConnection();
-
-
-const [rows]=
-await conn.query(
-"SHOW TABLES"
-);
-
-
-
-res.json(rows);
-
-
-conn.end();
-
-
-});
-
-app.get("/labor-rates",async(req,res)=>{
-
-    const conn=await getConnection();
-
-    const [rows]=await conn.query(`
-
-        SELECT
-
-            labor.Code,
-            labor.Description,
-            l_rates.*
-
-        FROM l_rates
-
-        LEFT JOIN labor
-
-        ON labor.old_id=l_rates.LID
-
-        ORDER BY labor.Code
-
-    `);
 
     res.json(rows);
 
-});
-app.get("/material-rates",async(req,res)=>{
 
-    const conn=await getConnection();
+    conn.end();
 
-    const [rows]=await conn.query(`
-
-        SELECT
-
-            material.Code,
-            material.Description,
-            m_rates.*
-
-        FROM m_rates
-
-        LEFT JOIN material
-
-        ON material.old_id=m_rates.MID
-
-        ORDER BY material.Code
-
-    `);
-
-    res.json(rows);
-
-});
-app.get("/equipment-rates",async(req,res)=>{
-
-    const conn=await getConnection();
-
-    const [rows]=await conn.query(`
-
-        SELECT
-
-            equipment.Code,
-            equipment.Description,
-            e_rates.*
-
-        FROM e_rates
-
-        LEFT JOIN equipment
-
-        ON equipment.old_id=e_rates.EID
-
-        ORDER BY equipment.Code
-
-    `);
-
-    res.json(rows);
 
 });
 
+// app.get("/labor-rates", async (req, res) => {
+
+//     try {
+
+//         const conn = await getConnection();
+
+//         const [rows] = await conn.query(`
+
+//             SELECT
+
+//                 lr.*,
+//                 l.Code,
+//                 l.Description
+
+//             FROM l_rates lr
+
+//             LEFT JOIN labor l
+//                 ON l.old_id = lr.LID
+
+//             ORDER BY l.Code
+
+//         `);
+
+//         res.json(rows);
+
+//     } catch (err) {
+
+//         console.log(err);
+
+//         res.status(500).json(err);
+
+//     }
+
+// });
+
+app.get("/material-rates", async (req, res) => {
+
+    try {
+
+        const conn = await getConnection();
+
+        const [rows] = await conn.query(`
+
+            SELECT
+
+                mr.*,
+                m.Code,
+                m.Description,
+                m.UOM
+
+            FROM m_rates mr
+
+            LEFT JOIN material m
+                ON m.old_id = mr.MID
+
+            ORDER BY m.Code
+
+        `);
+
+        res.json(rows);
+
+    } catch (err) {
+
+        console.log(err);
+
+        res.status(500).json(err);
+
+    }
+
+});
+// app.get("/equipment-rates", async (req, res) => {
+
+//     try {
+
+//         const conn = await getConnection();
+
+//         const [rows] = await conn.query(`
+
+//             SELECT
+
+//                 er.*,
+//                 e.Code,
+//                 e.Description
+
+//             FROM e_rates er
+
+//             LEFT JOIN equipment e
+//                 ON e.old_id = er.EID
+
+//             ORDER BY e.Code
+
+//         `);
+
+//         res.json(rows);
+
+//     } catch (err) {
+
+//         console.log(err);
+
+//         res.status(500).json(err);
+
+//     }
+
+// });
+
+// app.get("/labor-rates", async (req, res) => {
+
+//     try {
+
+//         const conn = await getConnection();
+
+//         const [rows] = await conn.query(`
+//             SELECT
+//                 l.Code,
+//                 l.Description,
+//                 l.UOT,
+//                 lr.\`Base Rate\`,
+//                 lr.Burdens,
+//                 lr.\`Total Rate\`,
+//                 lr.\`Alt UOT\`,
+//                 lr.\`Alt Fact\`,
+//                 lr.\`Alt Total Rate\`,
+//                 lr.Formula
+//             FROM l_rates lr
+//             LEFT JOIN labor l
+//                 ON l.old_id = lr.LID
+//             ORDER BY l.Code
+//         `);
+
+//         res.json(rows);
+
+//     } catch (err) {
+
+//         console.error(err);
+//         res.status(500).json({
+//             success: false,
+//             message: err.message
+//         });
+
+//     }
+
+// });
+
+// app.get("/labor-rates", async (req, res) => {
+
+//     const conn = await getConnection();
+
+//     const [rows] = await conn.query(`
+//         SELECT
+//             labor.Code,
+//             labor.Description,
+//             l_rates.\`Base Rate\`,
+//             l_rates.Burdens,
+//             l_rates.\`Total Rate\`
+//         FROM l_rates
+//         LEFT JOIN labor
+//             ON labor.old_id = l_rates.LID
+//         ORDER BY labor.Code
+//     `);
+
+//     res.json(rows);
+// });
+// app.get("/material-rates", async (req, res) => {
+
+//     const conn = await getConnection();
+
+//     const [rows] = await conn.query(`
+//         SELECT
+//             material.Code,
+//             material.Description,
+//             m_rates.\`Base Rate\`,
+//             m_rates.Burdens,
+//             m_rates.\`Total Rate\`
+//         FROM m_rates
+//         LEFT JOIN material
+//             ON material.old_id = m_rates.MID
+//         ORDER BY material.Code
+//     `);
+
+//     res.json(rows);
+// });
+// app.get("/equipment-rates", async (req, res) => {
+
+//     const conn = await getConnection();
+
+//     const [rows] = await conn.query(`
+//         SELECT
+//             equipment.Code,
+//             equipment.Description,
+//             e_rates.\`Rental Rate\`,
+//             e_rates.\`Internal Rate\`
+//         FROM e_rates
+//         LEFT JOIN equipment
+//             ON equipment.old_id = e_rates.EID
+//         ORDER BY equipment.Code
+//     `);
+
+//     res.json(rows);
+// });
+
+app.get("/project-info", async (req, res) => {
+    try {
+        const conn = await getConnection();
+
+        const [rows] = await conn.query(`
+            SELECT
+                \`Bid Number\` AS estimateCode,
+                \`Bid Name\` AS bidName,
+                \`Bid Currency\` AS currency,
+                \`Description\` AS description,
+                \`Unit Of Measure\` AS unit,
+                \`Overall Quantity\` AS quantity
+            FROM geninfo
+            LIMIT 1
+        `);
+
+        res.json(rows[0] || {});
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 
+// app.get("/material-rates/:blid", async (req, res) => {
+
+//     let conn;
+
+//     try {
+
+//         conn = await getConnection();
+
+//         const [rows] = await conn.query(`
+//             SELECT
+//                 sm.BLID,
+//                 sm.Code,
+//                 sm.Description,
+//                 sm.UOM,
+//                 sm.Quantity,
+
+//                 IFNULL(mr.\`Base Rate\`,0) AS \`Base Rate\`,
+//                 IFNULL(mr.Burdens,0) AS Burdens,
+//                 IFNULL(mr.\`Total Rate\`,0) AS \`Total Rate\`,
+
+//                 sm.\`Unit Cost\`,
+//                 sm.\`Total Cost\`
+
+//             FROM s_material sm
+
+//             LEFT JOIN m_rates mr
+//                 ON mr.MID = sm.old_id
+
+//             WHERE sm.BLID = ?
+
+//             ORDER BY sm.Sequence
+//         `, [req.params.blid]);
+
+//         res.json(rows);
+
+//     } catch (err) {
+
+//         console.log(err);
+
+//         res.status(500).json({
+//             error: err.message
+//         });
+
+//     } finally {
+
+//         if (conn) conn.end();
+
+//     }
+
+// });
+
+app.get("/material-rates/:blid", async (req, res) => {
+    let conn;
+
+    try {
+
+        conn = await getConnection();
+
+        const [rows] = await conn.query(`
+            SELECT
+
+                sm.BLID,
+                sm.old_id,
+                sm.Sequence,
+
+                sm.Code,
+                sm.Description,
+                sm.UOM,
+
+                sm.Quantity,
+                sm.Waste,
+                sm.AdjQty,
+
+                sm.\`Unit Cost\`,
+                sm.\`Total Cost\`,
+
+                sm.\`Mat Unit Cost\`,
+                sm.\`Mat Total Cost\`,
+
+                sm.adj_amt_lab,
+                sm.adj_amt_eq,
+                sm.adj_amt_mat,
+                sm.adj_amt_sub,
+                sm.total_adj_cost,
+
+                sm.Category,
+                sm.\`2nd Category\`,
+                sm.\`3rd Category\`,
+
+                COALESCE(mr.\`Base Rate\`, sm.\`Unit Cost\`)  AS \`Base Rate\`,
+                COALESCE(mr.Burdens,0)                        AS Burdens,
+                COALESCE(mr.\`Total Rate\`, sm.\`Unit Cost\`) AS \`Total Rate\`
+
+            FROM s_material sm
+
+            LEFT JOIN m_rates mr
+                ON mr.MID = sm.old_id
+
+            WHERE sm.BLID = ?
+
+            ORDER BY sm.Sequence
+        `,[req.params.blid]);
+
+        res.json(rows);
+
+    } catch(err){
+
+        console.log(err);
+
+        res.status(500).json({
+            success:false,
+            error:err.message
+        });
+
+    } finally{
+
+        if(conn) conn.end();
+
+    }
+});
 
 app.listen(PORT,()=>{
 

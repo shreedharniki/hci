@@ -2,6 +2,7 @@ const API = "http://localhost:3000";
 
 let treeData = [];
 let selectedNode = null;
+let currentBLID = null;   // ADD THIS
 
 // ===============================
 // LOAD APPLICATION
@@ -25,7 +26,9 @@ async function loadTree() {
   const res = await fetch(API + "/tree");
 
   treeData = await res.json();
+
   console.log("TREE DATA:", treeData);
+ 
   buildTree(treeData);
 }
 
@@ -128,29 +131,7 @@ ${node.UOM || ""})
   return ul;
 }
 
-// ===============================
-// SELECT NODE
-// ===============================
 
-// function selectNode(node, row) {
-
-//     selectedNode = node;
-
-//     document.querySelectorAll(".tree-row").forEach(x=>{
-//         x.classList.remove("selected");
-//     });
-
-//     row.classList.add("selected");
-
-//     loadDetail(node);
-
-//     loadBidListing(node.old_id);
-
-//     loadResources(node.old_id);
-
-//     loadCrew(node.old_id);   // ADD THIS
-//     loadMaterial(node.old_id);
-// }
 function selectNode(node, row) {
   console.log("SELECTED NODE");
   console.log(node);
@@ -190,208 +171,166 @@ function loadDetail(node) {
   document.getElementById("quantity").value = node.Quantity || "";
 
   document.getElementById("unit").value = node.UOM || "";
+  document.getElementById("currency").value = node.currency || "";
+  
 }
 
 // ===============================
 // BID LISTING
 // ===============================
 
-async function loadBidListing(id) {
-  const res = await fetch(API + "/bidlisting/" + id);
-
-  const rows = await res.json();
-  console.log("========== BID LISTING ==========");
-  console.log("ID:", id);
-  console.table(rows);
-
-  console.log("SECTION ID:", id);
-
-  console.log("========== BID LISTING END ==========");
-  let html = `
-
-
-<tr>
-
-<th>
-BLID
-</th>
-
-<th>
-Line
-</th>
-
-<th>
-Description
-</th>
-
-
-<th>
-Quantity
-</th>
-
-
-<th>
-UOM
-</th>
-
-
-</tr>
-
-
-`;
-
-  rows.forEach((r) => {
-    html += `
-
-<tr>
-
-<td>
-${r.BLID}
-</td>
-
-
-<td>
-${r.line_no}
-</td>
-
-
-<td>
-${r.Description}
-</td>
-
-
-<td>
-${r.Quantity || 0}
-</td>
-
-
-<td>
-${r.UOM || ""}
-</td>
-
-
-</tr>
-
-
-`;
-  });
-
-  document.getElementById("bidTable").innerHTML = html;
-}
-
-// ===============================
-// RESOURCES
-// ===============================
-
-// async function loadResources(id) {
-//   const res = await fetch(API + "/resources/" + id);
+// async function loadBidListing(id) {
+//   const res = await fetch(API + "/bidlisting/" + id);
 
 //   const rows = await res.json();
-//   console.log("========== RESOURCES ==========");
-//   console.log("SECTION ID:", id);
+//   console.log("========== BID LISTING ==========");
+//   console.log("ID:", id);
 //   console.table(rows);
-//   const tbody = document.querySelector("#resourceTable tbody");
 
-//   tbody.innerHTML = "";
+//   console.log("SECTION ID:", id);
 
-//   let labor = 0;
-//   let material = 0;
-//   let equipment = 0;
-//   let subcontract = 0;
-
-//   rows.forEach((r) => {
-//     let total = Number(r["Total Cost"] || 0);
-
-//     let tr = document.createElement("tr");
-
-//     tr.innerHTML = `
-
-// <td>
-// ${r.Code || ""}
-// </td>
+//   console.log("========== BID LISTING END ==========");
+//   let html = `
 
 
-// <td>
-// ${r.Description || ""}
-// </td>
+// <tr>
+
+// <th>
+// BLID
+// </th>
+
+// <th>
+// Line
+// </th>
+
+// <th>
+// Description
+// </th>
 
 
-// <td>
-// ${r.Category}
-// </td>
+// <th>
+// Quantity
+// </th>
 
 
-// <td>
-// ${r.Qty || 0}
-// </td>
+// <th>
+// UOM
+// </th>
 
 
-// <td>
-// ${r.Rate || 0}
-// </td>
-
-
-// <td>
-// ${r["Unit Cost"] || 0}
-// </td>
-
-
-// <td>
-// ${total}
-// </td>
+// </tr>
 
 
 // `;
 
-//     tbody.appendChild(tr);
+//   rows.forEach((r) => {
+//     html += `
 
-//     switch (r.Category) {
-//       case "Labor":
-//         labor += total;
+// <tr>
 
-//         break;
+// <td>
+// ${r.BLID}
+// </td>
 
-//       case "Material":
-//         material += total;
 
-//         break;
+// <td>
+// ${r.line_no}
+// </td>
 
-//       case "Equipment":
-//         equipment += total;
 
-//         break;
+// <td>
+// ${r.Description}
+// </td>
 
-//       case "Subcontract":
-//         subcontract += total;
 
-//         break;
-//     }
+// <td>
+// ${r.Quantity || 0}
+// </td>
+
+
+// <td>
+// ${r.UOM || ""}
+// </td>
+
+
+// </tr>
+
+
+// `;
 //   });
-//   console.log("========== TOTAL ==========");
-//   console.log({
-//     labor,
-//     material,
-//     equipment,
-//     subcontract,
-//     grand: labor + material + equipment + subcontract,
-//   });
 
-//   document.getElementById("laborTotal").innerHTML = labor.toFixed(2);
-
-//   document.getElementById("materialTotal").innerHTML = material.toFixed(2);
-
-//   document.getElementById("equipmentTotal").innerHTML = equipment.toFixed(2);
-
-//   document.getElementById("subcontractTotal").innerHTML =
-//     subcontract.toFixed(2);
-
-//   document.getElementById("grandTotal").innerHTML = (
-//     labor +
-//     material +
-//     equipment +
-//     subcontract
-//   ).toFixed(2);
+//   document.getElementById("bidTable").innerHTML = html;
 // }
+
+async function loadBidListing(id) {
+
+    const res = await fetch(API + "/bidlisting/" + id);
+    const rows = await res.json();
+
+    if(rows.length){
+        currentBLID = rows[0].BLID;
+    }
+
+    let html = `
+    <tr>
+        <th>BLID</th>
+        <th>Line</th>
+        <th>Description</th>
+        <th>Qty</th>
+        <th>Unit</th>
+    </tr>
+    `;
+
+    rows.forEach(r=>{
+
+        html += `
+    <tr class="bid-row" data-blid="${r.BLID}">
+
+            <td>${r.BLID}</td>
+
+            <td>${r.line_no}</td>
+
+            <td>${r.Description}</td>
+
+            <td>${r.Quantity}</td>
+
+            <td>${r.UOM}</td>
+
+        </tr>
+        `;
+
+    });
+
+    document.getElementById("bidTable").innerHTML = html;
+    document.querySelectorAll(".bid-row").forEach(row => {
+
+    row.addEventListener("click", function () {
+
+        currentBLID = this.dataset.blid;
+
+        console.log("Current BLID:", currentBLID);
+
+        document.querySelectorAll(".bid-row").forEach(r =>
+            r.classList.remove("selected")
+        );
+
+        this.classList.add("selected");
+
+    });
+
+});
+
+}
+
+// function selectBidLine(blid){
+
+//     currentBLID = blid;
+
+//     console.log("Current BLID:", currentBLID);
+
+// }
+
+
 async function loadResources(id) {
 
     const res = await fetch(API + "/resources/" + id);
@@ -545,31 +484,7 @@ async function uploadMDB(e) {
   loadTree();
 }
 
-// async function loadCrew(sectionId) {
-//   const res = await fetch(API + "/crew/" + sectionId);
 
-//   const rows = await res.json();
-// console.log("========== CREW ==========");
-// console.log("SECTION:",sectionId);
-// console.table(rows);
-
-//   const tbody = document.querySelector("#crewTable tbody");
-
-//   tbody.innerHTML = "";
-
-//   rows.forEach((r) => {
-//     tbody.innerHTML += `
-//         <tr>
-//             <td>${r.BLID}</td>
-//             <td>${r.Code}</td>
-//             <td>${r.Description}</td>
-//             <td>${Number(r.Qty).toLocaleString()}</td>
-//             <td>${Number(r.Rate).toFixed(2)}</td>
-//             <td>${Number(r["Unit Cost"]).toFixed(2)}</td>
-//             <td>${Number(r["Total Cost"]).toFixed(2)}</td>
-//         </tr>`;
-//   });
-// }
 
 async function loadCrew(sectionId) {
   const res = await fetch(API + "/crew/" + sectionId);
@@ -733,14 +648,15 @@ async function loadMaterial(sectionId) {
 }
 
 
-const views = [
-    "detailView",
-    "laborRateView",
-    "materialRateView",
-    "equipmentRateView"
+
+const views=[
+"detailView",
+"laborRateView",
+"materialRateView",
+"equipmentRateView"
 ];
 
-function showView(viewId){
+function showView(view){
 
     views.forEach(v=>{
 
@@ -748,18 +664,32 @@ function showView(viewId){
 
     });
 
-    document.getElementById(viewId).style.display="block";
+    document.getElementById(view).style.display="block";
+
+    document.querySelectorAll(".tabs button").forEach(btn=>{
+
+        btn.classList.remove("active");
+
+    });
 
 }
+
+
+
+
 document.getElementById("detailTab").onclick=()=>{
 
     showView("detailView");
+
+    document.getElementById("detailTab").classList.add("active");
 
 };
 
 document.getElementById("laborRateTab").onclick=()=>{
 
     showView("laborRateView");
+
+    document.getElementById("laborRateTab").classList.add("active");
 
     loadLaborRates();
 
@@ -769,6 +699,8 @@ document.getElementById("materialRateTab").onclick=()=>{
 
     showView("materialRateView");
 
+    document.getElementById("materialRateTab").classList.add("active");
+
     loadMaterialRates();
 
 };
@@ -776,6 +708,8 @@ document.getElementById("materialRateTab").onclick=()=>{
 document.getElementById("equipmentRateTab").onclick=()=>{
 
     showView("equipmentRateView");
+
+    document.getElementById("equipmentRateTab").classList.add("active");
 
     loadEquipmentRates();
 
@@ -824,48 +758,281 @@ async function loadLaborRates() {
     
 }
 
+// async function loadMaterialRates() {
+
+//     const res = await fetch(API + "/material-rates");
+//     const rows = await res.json();
+
+//     console.log("===== MATERIAL RATES =====");
+//     console.table(rows);
+
+//     const table = document.getElementById("materialRateTable");
+
+//     let html = `
+//     <thead>
+//         <tr>
+//             <th>Code</th>
+//             <th>Description</th>
+//             <th>Base Rate</th>
+//             <th>Burdens</th>
+//             <th>Total </th>
+//         </tr>
+//     </thead>
+//     <tbody>
+//     `;
+
+//     rows.forEach(r => {
+
+//         html += `
+//         <tr>
+//             <td>${r.Code || ""}</td>
+//             <td>${r.Description || ""}</td>
+//             <td>${Number(r["Base Rate"] || 0).toFixed(2)}</td>
+//             <td>${Number(r.Burdens || 0).toFixed(2)}</td>
+//             <td>${Number(r["totalCostt"] || 0).toFixed(2)}</td>
+//         </tr>
+//         `;
+
+//     });
+
+//     html += `</tbody>`;
+
+//     table.innerHTML = html;
+// }
+// document.getElementById("materialRateTab").addEventListener("click", loadMaterialRates);
+
+// async function loadMaterialRates() {
+
+//     if (!currentBLID) {
+//         alert("Please select a Bid Item first.");
+//         return;
+//     }
+
+//     try {
+
+//         const res = await fetch(`${API}/material-rates/${currentBLID}`);
+//         const rows = await res.json();
+
+//         const tbody = document.getElementById("materialRateBody");
+//         tbody.innerHTML = "";
+
+//         rows.forEach(r => {
+
+//             tbody.innerHTML += `
+//                 <tr>
+//                     <td>${r.Description}</td>
+//                     <td>${r.UOM}</td>
+//                     <td>${Number(r.Quantity).toLocaleString()}</td>
+//                     <td>${Number(r.unitCost).toFixed(3)}</td>
+//                     <td>${Number(r.totalCost).toLocaleString(undefined,{
+//                         minimumFractionDigits:3,
+//                         maximumFractionDigits:3
+//                     })}</td>
+//                 </tr>
+//             `;
+
+//         });
+
+//     } catch (err) {
+
+//         console.error(err);
+
+//     }
+
+// }
+
+
+// async function loadMaterialRates(){
+
+//     if(currentBLID==null){
+
+//         alert("Please select a Bid Item.");
+
+//         return;
+
+//     }
+
+//     try{
+
+//         const res = await fetch(API + "/material-rates/" + currentBLID);
+
+//         const rows = await res.json();
+
+//         let html="";
+
+//         rows.forEach(r=>{
+
+//             html+=`
+
+//             <tr>
+
+//                 <td>${r.Code || ""}</td>
+
+//                 <td>${r.Description || ""}</td>
+
+//                 <td>${r.UOM || ""}</td>
+
+//                 <td>${Number(r.Quantity||0).toLocaleString()}</td>
+
+//                 <td>${Number(r["Base Rate"]||0).toFixed(3)}</td>
+
+//                 <td>${Number(r.Burdens||0).toFixed(3)}</td>
+
+//                 <td>${Number(r["Total Rate"]||0).toFixed(3)}</td>
+
+//                 <td>${Number(r["Total Cost"]||0).toFixed(3)}</td>
+
+//             </tr>
+
+//             `;
+
+//         });
+
+//         document.getElementById("materialRateBody").innerHTML=html;
+
+//     }
+//     catch(err){
+
+//         console.log(err);
+
+//     }
+
+// }
+
+// async function loadMaterialRates() {
+
+//     if (!currentBLID) {
+//         alert("Please select a Bid Line.");
+//         return;
+//     }
+
+//     try {
+
+//         const res = await fetch(API + "/material-rates/" + currentBLID);
+
+//         const rows = await res.json();
+
+//         console.table(rows);
+
+//         const tbody = document.getElementById("materialRateBody");
+
+//         tbody.innerHTML = "";
+
+//         rows.forEach(r => {
+
+//             tbody.innerHTML += `
+//                 <tr>
+
+//                     <td>${r.Code}</td>
+
+//                     <td>${r.Description}</td>
+
+//                     <td>${r.UOM}</td>
+
+//                     <td>${Number(r.Quantity).toLocaleString()}</td>
+
+//                     <td>${Number(r["Base Rate"]).toFixed(4)}</td>
+
+//                     <td>${Number(r.Burdens).toFixed(4)}</td>
+
+//                     <td>${Number(r["Total Rate"]).toFixed(4)}</td>
+
+//                     <td>${Number(r["Unit Cost"]).toFixed(4)}</td>
+
+//                     <td>${Number(r["Total Cost"]).toFixed(4)}</td>
+
+//                 </tr>
+//             `;
+
+//         });
+
+//     }
+//     catch(err){
+
+//         console.error(err);
+
+//     }
+
+// }
+
 async function loadMaterialRates() {
 
-    const res = await fetch(API + "/material-rates");
-    const rows = await res.json();
+    if (!currentBLID) {
+        alert("Please select a Bid Line.");
+        return;
+    }
 
-    console.log("===== MATERIAL RATES =====");
-    console.table(rows);
+    try {
 
-    const table = document.getElementById("materialRateTable");
+        const res = await fetch(API + "/material-rates/" + currentBLID);
 
-    let html = `
-    <thead>
-        <tr>
-            <th>Code</th>
-            <th>Description</th>
-            <th>Base Rate</th>
-            <th>Burdens</th>
-            <th>Total Rate</th>
-        </tr>
-    </thead>
-    <tbody>
-    `;
+        const rows = await res.json();
 
-    rows.forEach(r => {
+        console.table(rows);
 
-        html += `
-        <tr>
-            <td>${r.Code || ""}</td>
-            <td>${r.Description || ""}</td>
-            <td>${Number(r["Base Rate"] || 0).toFixed(2)}</td>
-            <td>${Number(r.Burdens || 0).toFixed(2)}</td>
-            <td>${Number(r["Total Rate"] || 0).toFixed(2)}</td>
-        </tr>
-        `;
+        const tbody = document.getElementById("materialRateBody");
 
-    });
+        tbody.innerHTML = "";
 
-    html += `</tbody>`;
+        rows.forEach(r => {
 
-    table.innerHTML = html;
+            tbody.innerHTML += `
+                <tr>
+
+                    <td>${r.Code || ""}</td>
+
+                    <td>${r.Description || ""}</td>
+
+                    <td>${r.UOM || ""}</td>
+
+                    <td>${Number(r.Quantity || 0).toLocaleString()}</td>
+
+                    <td>${Number(r.Waste || 0).toFixed(2)}</td>
+
+                    <td>${Number(r.AdjQty || 0).toLocaleString()}</td>
+
+                    <td>${Number(r["Base Rate"] || 0).toFixed(4)}</td>
+
+                    <td>${Number(r.Burdens || 0).toFixed(4)}</td>
+
+                    <td>${Number(r["Total Rate"] || 0).toFixed(4)}</td>
+
+                    <td>${Number(r["Unit Cost"] || 0).toFixed(4)}</td>
+
+                    <td>${Number(r["Total Cost"] || 0).toFixed(4)}</td>
+
+                    <td>${Number(r["Mat Unit Cost"] || 0).toFixed(4)}</td>
+
+                    <td>${Number(r["Mat Total Cost"] || 0).toFixed(4)}</td>
+
+                    <td>${Number(r.adj_amt_lab || 0).toFixed(4)}</td>
+
+                    <td>${Number(r.adj_amt_eq || 0).toFixed(4)}</td>
+
+                    <td>${Number(r.adj_amt_mat || 0).toFixed(4)}</td>
+
+                    <td>${Number(r.adj_amt_sub || 0).toFixed(4)}</td>
+
+                    <td>${Number(r.total_adj_cost || 0).toFixed(4)}</td>
+
+                    <td>${r.Category || ""}</td>
+
+                    <td>${r["2nd Category"] || ""}</td>
+
+                    <td>${r["3rd Category"] || ""}</td>
+
+                </tr>
+            `;
+
+        });
+
+    } catch (err) {
+
+        console.error("Material Rates Error:", err);
+
+    }
+
 }
-
 async function loadEquipmentRates() {
 
     const res = await fetch(API + "/equipment-rates");

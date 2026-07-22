@@ -580,3 +580,47 @@ width:100%;
 
 
 }
+
+.grid-table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:10px;
+}
+
+.grid-table th,
+.grid-table td{
+
+    border:1px solid #ccc;
+    padding:8px;
+    font-size:13px;
+
+}
+
+.grid-table th{
+
+    background:#2c3e50;
+    color:white;
+
+}
+
+.tabs{
+
+    display:flex;
+    gap:5px;
+    margin-bottom:10px;
+
+}
+
+.tabs button{
+
+    padding:8px 15px;
+    cursor:pointer;
+
+}
+
+.tabs button.active{
+
+    background:#0078d7;
+    color:white;
+
+}

@@ -1,198 +1,346 @@
 <!doctype html>
 <html>
-  <head>
-    <title>Chief Estimator Dashboard</title>
 
-    <link rel="stylesheet" href="css/style.css" />
+<head>
+  <title>Chief Estimator Dashboard</title>
 
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    />
-  </head>
+  <link rel="stylesheet" href="css/style.css" />
 
-  <body>
-    <!-- ================= MENU ================= -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+</head>
 
-    <div class="menubar">
-      <div>File</div>
-      <div>Edit</div>
-      <div>Utilities</div>
-      <div>Libraries</div>
-      <div>Project</div>
-      <div>Estimate</div>
-      <div>Resources</div>
-      <div>Reports</div>
-      <div>Preferences</div>
-      <div>Help</div>
+<body>
+  <!-- ================= MENU ================= -->
+
+  <div class="menubar">
+    <div>File</div>
+    <div>Edit</div>
+    <div>Utilities</div>
+    <div>Libraries</div>
+    <div>Project</div>
+    <div>Estimate</div>
+    <div>Resources</div>
+    <div>Reports</div>
+    <div>Preferences</div>
+    <div>Help</div>
+  </div>
+
+  <!-- ================= TOOLBAR ================= -->
+
+  <div class="toolbar">
+    <button id="expandAll">
+      <i class="fa-solid fa-square-plus"></i>
+    </button>
+
+    <button id="collapseAll">
+      <i class="fa-solid fa-square-minus"></i>
+    </button>
+
+    <input id="searchTree" placeholder="Search Cost Breakdown..." />
+
+    <label class="upload">
+      <i class="fa-solid fa-upload"></i>
+
+      Upload MDB
+
+      <input type="file" id="estimateFile" hidden accept=".mdb" />
+    </label>
+    
+    <a href="costbrackdown.html">cost Brackdown</a>
+      
+
+   
+      
+    </label>
+  </div>
+
+  <!-- ================= WORK AREA ================= -->
+
+  <div class="workspace">
+    <!-- LEFT TREE -->
+
+    <div class="left">
+      <div class="panel-title">Chif Estimate Infomation</div>
+
+        <div class="form-grid">
+          <label> Estimate Code </label>
+
+          <input id="estimateCode"  readonly />
+
+          <label> Estimate Currency </label>
+
+          <input id="currency" readonly />
+
+          <label> Estimate  Discription </label>
+
+          <input id="bidName" readonly />
+          <label> Estimate   Quantity </label>
+
+          <input id="quantity" readonly step="0.001" />
+
+
+          <label>Overall Unit  of Measure</label>
+
+          <input id="unit" readonly />
+          
+        
+
+        
+        </div>
+        <div class="form-grid">
+           
+          <label> Base Cost </label>
+
+          <input  id="baseCost"
+                    type="number"
+                    value="1884143.162"
+                    step="0.001" />
+
+          
+
+         
+          
+        </div>
+       <h3>Margin Percentage</h3>
+         <div class="form-grid">
+          <label> Indirect Cost </label>
+
+          <input id="indirect" value="18" />
+
+          <label>Travel & Subsistence </label>
+
+          <input id="travel" value="6" />
+
+          <label> Escalation </label>
+
+          <input id="escalation" value="3" />
+
+          <label> Engineering Design</label>
+
+         <input id="engineering" value="6" />
+            <label> Contingency</label>
+
+         <input id="contingency" value="5" />
+
+
+         <label> Overhead & Profit</label>
+
+         <input id="overhead" value="15" />
+         <label >Guarantees & Insurance</label>
+         <input id="insurance" value="1.4"  />
+         <label for="">Owner Contingency</label>
+         <input id="owner" value="15"/>
+          
+        </div>
+    
     </div>
 
-    <!-- ================= TOOLBAR ================= -->
+    <!-- RIGHT SIDE -->
 
-    <div class="toolbar">
-      <button id="expandAll">
-        <i class="fa-solid fa-square-plus"></i>
-      </button>
+    <div class="right">
+      <div class="tabs">
+        <button id="detailTab" class="active">Detail</button>
 
-      <button id="collapseAll">
-        <i class="fa-solid fa-square-minus"></i>
-      </button>
 
-      <input id="searchTree" placeholder="Search Cost Breakdown..." />
 
-      <label class="upload">
-        <i class="fa-solid fa-upload"></i>
+       <button id="laborRateTab">Labor Rates</button>
+    <button id="materialRateTab">Material Rates</button>
+    <button id="equipmentRateTab">Equipment Rates</button>
 
-        Upload MDB
 
-        <input type="file" id="estimateFile" hidden accept=".mdb" />
-      </label>
-    </div>
-
-    <!-- ================= WORK AREA ================= -->
-
-    <div class="workspace">
-      <!-- LEFT TREE -->
-
-      <div class="left">
-        <div class="panel-title">Cost Breakdown</div>
-
-        <div id="tree"></div>
       </div>
 
-      <!-- RIGHT SIDE -->
+     
+      
 
-      <div class="right">
-        <div class="tabs">
-          <button id="detailTab" class="active">Detail</button>
-
-          
-
-            <button id="laborRateTab">Labor Rate</button>
-            <button id="materialRateTab">Material Rate</button>
-            <button id="equipmentRateTab">Equipment Rate</button>
-          
-
-        </div>
-
-        <!-- DETAIL -->
-
-        <div id="detailView">
-          <h3>Cost Detail Information</h3>
-
-          <div class="form-grid">
-            <label> Line No </label>
-
-            <input id="lineNo" readonly />
-
-            <label> Description </label>
-
-            <input id="description" readonly />
-
-            <label> Quantity </label>
-
-            <input id="quantity" readonly />
-
-            <label> Unit </label>
-
-            <input id="unit" readonly />
-
-            <label> Status </label>
-
-            <input id="status" value="Bid" readonly />
-          </div>
-        </div>
-<div id="laborRateView" style="display:none">
-    <table id="laborRateTable"></table>
-</div>
-
-<div id="materialRateView" style="display:none">
-    <table id="materialRateTable"></table>
-</div>
-
-<div id="equipmentRateView" style="display:none">
-    <table id="equipmentRateTable"></table>
-</div>
-        <!-- BID LIST -->
-<h3>Bid Lines</h3>
-<table id="bidTable">
-    <thead></thead>
-    <tbody></tbody>
-</table>
-
-
-<h3>Resources</h3>
-<table id="resourceTable">
-    <thead></thead>
-    <tbody></tbody>
-</table>
-
-
-<h3>Crew</h3>
-<table id="crewTable">
-    <thead></thead>
-    <tbody></tbody>
-</table>
-
-
-<h3>Material</h3>
-<table id="materialTable">
-    <thead></thead>
-    <tbody></tbody>
-</table>
+        
       
 
 
 
 
-        </div>
-      </div>
+<div class="card">
+
+        <h2>Cost Detail Information</h2>
+
+        <table id="costTable">
+
+            <thead>
+
+            <tr>
+
+                <th>Cost Item</th>
+
+                <th>Unit Cost</th>
+
+                <th>Total Cost</th>
+
+            </tr>
+
+            </thead>
+
+            <tbody>
+
+            <tr>
+                <td>Manhours</td>
+                <td id="manhourUnit">1.54</td>
+                <td id="manhourTotal">8064.308</td>
+            </tr>
+
+            <tr>
+                <td>Labor</td>
+                <td id="laborUnit">110.72</td>
+                <td id="laborTotal">579289.414</td>
+            </tr>
+
+            <tr>
+                <td>Equipment</td>
+                <td id="equipmentUnit">55.37</td>
+                <td id="equipmentTotal">289661.892</td>
+            </tr>
+
+            <tr>
+                <td>Consumable Material</td>
+                <td id="consumableUnit">22.41</td>
+                <td id="consumableTotal">117264.722</td>
+            </tr>
+
+            <tr>
+                <td>Permanent Material</td>
+                <td id="permanentUnit">161.44</td>
+                <td id="permanentTotal">844608.224</td>
+            </tr>
+
+            <tr>
+                <td>Mech/Elec Equipment</td>
+                <td id="meUnit">10.19</td>
+                <td id="meTotal">53318.910</td>
+            </tr>
+
+            <tr>
+                <td>Subcontract</td>
+                <td id="subUnit">0.00</td>
+                <td id="subTotal">0.000</td>
+            </tr>
+
+            </tbody>
+
+            <tfoot>
+
+            <tr>
+
+                <th>Total Cost</th>
+
+                <th id="totalUnitCost">360.13</th>
+
+                <th id="totalCost">1884143.162</th>
+
+            </tr>
+
+            </tfoot>
+
+        </table>
+
     </div>
 
-    <!-- STATUS BAR -->
+<!-- ================= Margin ================= -->
 
-    <!-- <div class="statusbar">
-      <div>
-        Labor
+    
 
-        <br />
+    <!-- ================= Result ================= -->
 
-        <span id="laborTotal"> 0 </span>
-      </div>
+    <div class="card">
 
-      <div>
-        Material
+        <h2>Margin Calculation</h2>
 
-        <br />
+        <table>
 
-        <span id="materialTotal"> 0 </span>
-      </div>
+            <thead>
+            <tr>
+                <th>Classification</th>
+                <th>%</th>
+                <th>Base Cost</th>
+                <th>Margin Amount</th>
+                <th>Cumulative Total</th>
+            </tr>
+            </thead>
 
-      <div>
-        Equipment
+            <tbody id="marginTable">
 
-        <br />
+            </tbody>
 
-        <span id="equipmentTotal"> 0 </span>
-      </div>
+        </table>
 
-      <div>
-        Subcontract
+    </div>
 
-        <br />
+    <!-- ================= Selling ================= -->
 
-        <span id="subcontractTotal"> 0 </span>
-      </div>
+    <div class="card">
 
-      <div>
-        Total
+        <h2>Selling Price</h2>
 
-        <br />
+        <table>
 
-        <span id="grandTotal"> 0 </span>
-      </div>
-    </div> -->
+            <tr>
+                <td>Contractor Price</td>
+                <td id="contractorPrice">0</td>
+            </tr>
 
-    <script src="js/app.js"></script>
-  </body>
+            <tr>
+                <td>Owner Contingency</td>
+                <td id="ownerPrice">0</td>
+            </tr>
+
+            <tr>
+                <td>Total Project Price</td>
+                <td id="totalPrice">0</td>
+            </tr>
+
+            <tr>
+                <td>Unit Cost</td>
+                <td id="unitCost">0</td>
+            </tr>
+
+            <tr>
+                <td>Contractor Unit Price</td>
+                <td id="contractorUnit">0</td>
+            </tr>
+
+            <tr>
+                <td>Total Unit Price</td>
+                <td id="totalUnit">0</td>
+            </tr>
+
+        </table>
+
+    </div>
+
+
+
+
+
+     
+
+
+     
+
+
+     
+
+
+      
+
+
+
+
+
+    </div>
+  </div>
+  </div>
+
+
+  
+  <script src="script.js"></script>
+</body>
+
 </html>
